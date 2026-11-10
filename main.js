@@ -407,25 +407,26 @@ function initProblems() {
         }, { threshold: 0.2 });
         io.observe(card);
     });
+    const sorting = document.querySelector(".sortwrap");
+    if (sorting)
+        grid.insertBefore(sorting, grid.children[3] || null);
 }
 initProblems();
-/* ---------- Scroll-driven 3D roll: cards travel right to left as you scroll down ---------- */
-function rollify(track, label) {
+/* ---------- Shared rolling cards ---------- */
+function autoRoll(track, label, showCounter = true) {
     if (!track || !track.children.length || reduceMotion)
         return;
     const sec = track.closest("section");
     if (!sec)
         return;
-    sec.classList.add("rolling");
-    const pin = document.createElement("div");
-    pin.className = "lcpin";
-    const stick = document.createElement("div");
-    stick.className = "lcstick";
-    stick.innerHTML = `<div class="lchud" aria-hidden="true"><span>${label}</span><span class="lcn"></span></div><div class="lcbar" aria-hidden="true"><i></i></div>`;
-    track.parentNode.insertBefore(pin, track);
-    pin.appendChild(stick);
-    stick.insertBefore(track, stick.firstChild);
-    track.classList.add("lctrack");
+    sec.classList.add("autoroll");
+    const stage = document.createElement("div");
+    stage.className = showCounter ? "lcauto" : "lcauto no-hud";
+    if (showCounter)
+        stage.innerHTML = `<div class="lchud" aria-hidden="true"><span>${label}</span><span class="lcn"></span></div>`;
+    track.parentNode.insertBefore(stage, track);
+    stage.appendChild(track);
+    track.classList.add("roll-track");
     const isList = track.tagName === "UL";
     if (isList)
         track.setAttribute("role", "list");
@@ -434,111 +435,64 @@ function rollify(track, label) {
         s.className = "slot3d";
         if (isList)
             s.setAttribute("role", "listitem");
+        if (c.classList.contains("sortwrap"))
+            s.classList.add("sort-slot");
         track.replaceChild(s, c);
         s.appendChild(c);
         return s;
     });
-    const bar = stick.querySelector(".lcbar i");
-    const cnt = stick.querySelector(".lcn");
-    const SPEED = 1.35; /* cards travel a bit faster than the scroll, so the section stays short */
-    let cw = 0, xs = 0, xe = 0, lefts = [], widths = [];
-    let target = 0, shown = -1, raf = 0;
-    const paint = (p) => {
-        const x = xs - p * (xs - xe);
-        track.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`;
-        let near = 0, nd = 9;
-        slots.forEach((c, i) => {
-            const d = Math.max(-1.3, Math.min(1.3, (x + lefts[i] + widths[i] / 2 - cw / 2) / (cw / 2)));
-            const a = Math.abs(d);
-            if (a < nd) {
-                nd = a;
-                near = i;
-            }
-            c.style.transform = `perspective(1100px) translateZ(${(-a * 190).toFixed(0)}px) rotateY(${(d * 42).toFixed(1)}deg) scale(${(1 - a * 0.07).toFixed(3)})`;
-            c.style.opacity = (1 - Math.min(a, 1.3) * 0.28).toFixed(2);
-        });
-        bar.style.transform = `scaleX(${p.toFixed(3)})`;
-        cnt.textContent = `${String(near + 1).padStart(2, "0")} / ${String(slots.length).padStart(2, "0")}`;
-    };
-    const readScroll = () => {
-        const span = pin.offsetHeight - window.innerHeight;
-        target = span > 0 ? Math.min(1, Math.max(0, -pin.getBoundingClientRect().top / span)) : 0;
-    };
-    const measure = () => {
-        cw = window.innerWidth;
-        lefts = slots.map((c) => c.offsetLeft);
-        widths = slots.map((c) => c.offsetWidth);
-        xs = cw * 0.66; /* first card starts off to the right */
-        xe = (cw + widths[widths.length - 1]) / 2 - track.offsetWidth; /* last card ends centred */
-        pin.style.height = `${window.innerHeight + (xs - xe) / SPEED}px`;
-        readScroll();
-        shown = target;
-        paint(target);
-    };
-    /* Ease toward the scroll position so the roll feels smooth */
-    const loop = () => {
-        shown += (target - shown) * 0.14;
-        if (Math.abs(target - shown) < 0.0004)
-            shown = target;
-        paint(shown);
-        raf = shown === target ? 0 : window.requestAnimationFrame(loop);
-    };
-    window.addEventListener("scroll", () => { readScroll(); if (!raf)
-        raf = window.requestAnimationFrame(loop); }, { passive: true });
-    window.addEventListener("resize", measure);
-    window.addEventListener("load", measure);
-    if (document.fonts)
-        document.fonts.ready.then(measure);
-    measure();
-}
-rollify(document.querySelector(".skills"), "Skills");
-/* ---------- LeetCode: rolls by itself while the section is on screen (hover or drag to slow it) ---------- */
-function autoRoll(track, label) {
-    if (!track || !track.children.length || reduceMotion)
-        return;
-    const sec = track.closest("section");
-    if (!sec)
-        return;
-    sec.classList.add("autoroll");
-    const stage = document.createElement("div");
-    stage.className = "lcauto";
-    stage.innerHTML = `<div class="lchud" aria-hidden="true"><span>${label}</span><span class="lcn"></span></div>`;
-    track.parentNode.insertBefore(stage, track);
-    stage.appendChild(track);
-    const slots = Array.from(track.children).map((c) => {
-        const s = document.createElement("div");
-        s.className = "slot3d";
-        track.replaceChild(s, c);
-        s.appendChild(c);
-        return s;
-    });
-    const cnt = stage.querySelector(".lcn");
+    const cnt = showCounter ? stage.querySelector(".lcn") : null;
+    const originalSlotCount = slots.length;
+    const originalSlots = slots.slice();
     const SPEED = 70; /* px per second */
     let cw = 0, w = 0, L = 1, lefts = [];
-    let t = 0, enter = 0, speed = 0, last = 0, raf = 0;
+    let t = 0, speed = 0, last = 0, raf = 0;
     let playing = false, hover = false, drag = false, dragX = 0, push = 0, vel = 0, idle = 0, moved = 0;
     const paint = () => {
         const xmin = -w - 140;
+        const fadeWidth = Math.max(w, cw * 0.15);
         let near = 0, nd = 9;
         slots.forEach((c, i) => {
-            let x = lefts[i] - t + enter;
+            let x = lefts[i] - t;
             x = ((((x - xmin) % L) + L) % L) + xmin; /* wrap around: cards leave on the left and return on the right */
             const d = Math.max(-1.3, Math.min(1.3, (x + w / 2 - cw / 2) / (cw / 2)));
             const a = Math.abs(d);
             if (a < nd) {
                 nd = a;
-                near = i;
+                near = i % originalSlotCount;
             }
             c.style.transform = `translate3d(${(x - lefts[i]).toFixed(1)}px,0,0) perspective(1100px) translateZ(${(-a * 190).toFixed(0)}px) rotateY(${(d * 42).toFixed(1)}deg) scale(${(1 - a * 0.07).toFixed(3)})`;
-            c.style.opacity = (1 - Math.min(a, 1.3) * 0.28).toFixed(2);
+            const edgeFade = Math.max(0, Math.min(1, (x + w) / fadeWidth, (cw - x) / fadeWidth));
+            c.style.opacity = ((1 - Math.min(a, 1.3) * 0.28) * edgeFade).toFixed(2);
         });
-        cnt.textContent = `${String(near + 1).padStart(2, "0")} / ${String(slots.length).padStart(2, "0")}`;
+        if (cnt)
+            cnt.textContent = `${String(near + 1).padStart(2, "0")} / ${String(originalSlotCount).padStart(2, "0")}`;
     };
     const measure = () => {
         cw = stage.clientWidth || window.innerWidth;
-        lefts = slots.map((c) => c.offsetLeft);
         w = slots[0].offsetWidth;
-        L = lefts[lefts.length - 1] + w + 30;
+        const minLoopWidth = cw + w;
+        const gap = slots.length > 1 ? slots[1].offsetLeft - slots[0].offsetLeft - slots[0].offsetWidth : 0;
+        const getLoopWidth = () => slots[slots.length - 1].offsetLeft + slots[slots.length - 1].offsetWidth + gap;
+        while (!showCounter && getLoopWidth() < minLoopWidth) {
+            const clone = originalSlots[slots.length % originalSlotCount].cloneNode(true);
+            clone.setAttribute("aria-hidden", "true");
+            clone.setAttribute("inert", "");
+            clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+            track.appendChild(clone);
+            slots.push(clone);
+        }
+        while (!showCounter && slots.length > originalSlotCount) {
+            const last = slots[slots.length - 1];
+            const previous = slots[slots.length - 2];
+            const previousLoopWidth = previous.offsetLeft + previous.offsetWidth + gap;
+            if (previousLoopWidth < minLoopWidth)
+                break;
+            track.removeChild(last);
+            slots.pop();
+        }
+        lefts = slots.map((c) => c.offsetLeft);
+        L = lefts[lefts.length - 1] + slots[slots.length - 1].offsetWidth + gap;
         paint();
     };
     const frame = (now) => {
@@ -556,7 +510,6 @@ function autoRoll(track, label) {
         push -= m;
         if (Math.abs(push) < 0.1)
             push = 0;
-        enter = enter < 0.5 ? 0 : enter * Math.pow(0.05, dt); /* first cards fly in from the right */
         paint();
         raf = window.requestAnimationFrame(frame);
     };
@@ -564,8 +517,17 @@ function autoRoll(track, label) {
         hover = true; });
     stage.addEventListener("pointerleave", () => { hover = false; });
     const hold = () => { idle = performance.now() + 2500; };
-    stage.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse" && e.button !== 0)
-        return; drag = true; dragX = e.clientX; vel = 0; push = 0; moved = 0; });
+    stage.addEventListener("pointerdown", (e) => {
+        if (e.pointerType === "mouse" && e.button !== 0 && e.button !== 1)
+            return;
+        drag = true;
+        dragX = e.clientX;
+        vel = 0;
+        push = 0;
+        moved = 0;
+        if (e.button === 1)
+            e.preventDefault();
+    });
     window.addEventListener("pointermove", (e) => {
         if (!drag)
             return;
@@ -588,14 +550,14 @@ function autoRoll(track, label) {
         moved = 0;
     } }, true);
     stage.addEventListener("wheel", (e) => {
-        if (!(Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey))
-            return; /* vertical wheel still scrolls the page */
+        if (e.ctrlKey)
+            return;
         e.preventDefault();
-        push += e.deltaX || e.deltaY;
+        push += Math.abs(e.deltaX) > Math.abs(e.deltaY) && !e.shiftKey ? e.deltaX : e.deltaY || e.deltaX;
         hold();
     }, { passive: false });
     stage.tabIndex = 0;
-    stage.setAttribute("aria-label", "Solved problems. Use the left and right arrow keys to browse.");
+    stage.setAttribute("aria-label", "Solved problems and live sorting visualization. Scroll, drag, or use the left and right arrow keys to browse.");
     stage.addEventListener("keydown", (e) => {
         if (e.key !== "ArrowRight" && e.key !== "ArrowLeft")
             return;
@@ -603,23 +565,19 @@ function autoRoll(track, label) {
         push += (e.key === "ArrowRight" ? 1 : -1) * (w + 30);
         hold();
     });
-    [-1, 1].forEach((dir) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "lcnav " + (dir < 0 ? "prev" : "next");
-        btn.setAttribute("aria-label", dir < 0 ? "Previous problems" : "Next problems");
-        btn.textContent = dir < 0 ? "‹" : "›";
-        btn.addEventListener("pointerdown", (e) => e.stopPropagation());
-        btn.addEventListener("click", () => { push += dir * (w + 30); hold(); });
-        (stage.parentElement || stage).appendChild(btn);
-    });
+    /* Scrolling the page up or down while this section is on screen rolls the cards too */
+    let lastY = window.scrollY;
+    window.addEventListener("scroll", () => {
+        const dy = window.scrollY - lastY;
+        lastY = window.scrollY;
+        if (playing && !drag && Math.abs(dy) < 300)
+            push += dy * 1.5;
+    }, { passive: true });
     window.addEventListener("resize", measure);
     window.addEventListener("load", measure);
     if (document.fonts)
         document.fonts.ready.then(measure);
     measure();
-    enter = cw * 0.7;
-    paint();
     const io = new IntersectionObserver((entries) => {
         entries.forEach((e) => {
             if (e.isIntersecting && !playing) {
@@ -639,8 +597,9 @@ function autoRoll(track, label) {
     io.observe(stage);
 }
 autoRoll(document.getElementById("lcgrid"), "Solved");
-rollify(document.querySelector(".projects"), "Projects");
-rollify(document.querySelector(".socials"), "Connect");
+autoRoll(document.querySelector(".skills"), "Skills", false);
+autoRoll(document.querySelector(".projects"), "Projects", false);
+autoRoll(document.querySelector(".socials"), "Connect", false);
 /* ---------- Headings decode themselves when they scroll into view ---------- */
 function initScramble() {
     const els = document.querySelectorAll("main h2, .proj h3, .building h3");
@@ -712,12 +671,12 @@ function hexToRgb(hex) {
 }
 function initBackground() {
     const canvas = document.getElementById("bg");
-    if (!canvas)
+    if (!canvas || getComputedStyle(canvas).display === "none")
         return;
     const ctx = canvas.getContext("2d");
     if (!ctx)
         return;
-    let w = 0, h = 0, frame = 0;
+    let w = 0, h = 0, frame = 0, raf = 0, running = false;
     let rgb = "36,71,245";
     let nodes = [];
     const mouse = { x: -9999, y: -9999 };
@@ -786,14 +745,34 @@ function initBackground() {
                 ctx.stroke();
             }
         }
-        if (!reduceMotion)
-            window.requestAnimationFrame(draw);
+        if (!reduceMotion && running)
+            raf = window.requestAnimationFrame(draw);
+        else {
+            running = false;
+            raf = 0;
+        }
+    };
+    const start = () => {
+        if (running || document.hidden || document.getElementById("cinematic-intro"))
+            return;
+        running = true;
+        draw();
+    };
+    const stop = () => {
+        running = false;
+        if (raf)
+            window.cancelAnimationFrame(raf);
+        raf = 0;
     };
     window.addEventListener("resize", resize);
     window.addEventListener("pointermove", (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
     window.addEventListener("pointerleave", () => { mouse.x = -9999; mouse.y = -9999; });
+    document.addEventListener("intro:closed", start);
+    document.addEventListener("visibilitychange", () => { if (document.hidden)
+        stop(); else
+        start(); });
     resize();
-    draw();
+    start();
 }
 initProgress();
 initTilt();
@@ -900,7 +879,20 @@ function initCursor() {
     ring.setAttribute("aria-hidden", "true");
     document.body.appendChild(ring);
     document.documentElement.classList.add("ring-on"); /* hides the system cursor everywhere */
-    let x = 0, y = 0, cx = 0, cy = 0, seen = false;
+    let x = 0, y = 0, cx = 0, cy = 0, seen = false, raf = 0;
+    const k = reduceMotion ? 1 : 0.22;
+    const loop = () => {
+        cx += (x - cx) * k;
+        cy += (y - cy) * k;
+        ring.style.translate = `${(cx - 16).toFixed(1)}px ${(cy - 16).toFixed(1)}px`; /* property order: translate first, then scale, so the hover scale grows around the ring centre */
+        if (Math.abs(x - cx) < 0.1 && Math.abs(y - cy) < 0.1) {
+            cx = x;
+            cy = y;
+            raf = 0;
+        }
+        else
+            raf = window.requestAnimationFrame(loop);
+    };
     const move = (e) => {
         x = e.clientX;
         y = e.clientY;
@@ -910,6 +902,8 @@ function initCursor() {
             cy = y;
             ring.classList.add("on");
         }
+        if (!raf)
+            raf = window.requestAnimationFrame(loop);
     };
     /* capture + several event types so cards, drags and native link-dragging can never strand the ring */
     ["pointermove", "mousemove", "pointerdown", "pointerup", "drag", "dragover"].forEach((n) => window.addEventListener(n, move, { capture: true, passive: true }));
@@ -921,13 +915,5 @@ function initCursor() {
     document.documentElement.addEventListener("pointerleave", () => ring.classList.remove("on"));
     document.documentElement.addEventListener("pointerenter", () => { if (seen)
         ring.classList.add("on"); });
-    const k = reduceMotion ? 1 : 0.22;
-    const loop = () => {
-        cx += (x - cx) * k;
-        cy += (y - cy) * k;
-        ring.style.transform = `translate3d(${(cx - 16).toFixed(1)}px,${(cy - 16).toFixed(1)}px,0)`;
-        window.requestAnimationFrame(loop);
-    };
-    loop();
 }
 initCursor();

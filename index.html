@@ -18,7 +18,7 @@
   --body:"Exo 2","Segoe UI",system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;overflow-x:clip}
 body{background:var(--bg);color:var(--ink);font:400 1.0625rem/1.65 var(--body)}
 a{color:inherit}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:4px}
@@ -57,6 +57,8 @@ h2{font:700 clamp(1.8rem,3.5vw,2.5rem) var(--display);letter-spacing:-.025em;mar
 .skills p{color:var(--muted)}
 .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .tags span{font-size:.82rem;background:var(--surface);border:1px solid var(--line);padding:2px 10px;border-radius:999px;color:var(--ink)}
+#skills>.sub{margin-bottom:18px}
+#skills .lcauto.no-hud{padding-top:12px;padding-bottom:30px}
 
 .projects{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 .proj{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:10px;text-decoration:none}
@@ -268,13 +270,11 @@ html{scroll-behavior:smooth}body::before{content:"";position:fixed;inset:0;z-ind
 @media (prefers-reduced-motion:reduce){.gloss,.gloss::before{animation:none!important}.fx:hover>.gloss,.tapped>.gloss{opacity:.85}}
 /* ---------- 3D scroll roll ---------- */
 .lcbar{display:none}
-section.rolling{overflow-x:clip;padding-bottom:40px}
-.rolling .lcpin{position:relative}
-.rolling .lcstick{position:sticky;top:0;height:100vh;width:100vw;margin-left:calc(50% - 50vw);padding:24px 0;display:flex;align-items:center;overflow:hidden}
-.rolling .lctrack{display:flex;gap:30px;width:max-content;position:relative;align-items:stretch;will-change:transform}
-.rolling .slot3d>*{flex:1 1 auto;width:100%;min-width:0}
-.rolling .slot3d{display:flex;flex:none;width:min(360px,78vw);will-change:transform,opacity}
-.rolling .lcbar{display:block;position:absolute;left:50%;bottom:6vh;width:min(320px,60vw);height:3px;translate:-50% 0;border-radius:3px;background:var(--line);overflow:hidden}
+section.autoroll{overflow-x:visible}
+.lcauto{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.lcauto .roll-track{display:flex;gap:30px;width:max-content;position:relative;align-items:stretch}
+.lcauto .slot3d>*{flex:1 1 auto;width:100%;min-width:0}
+.lcauto .slot3d{display:flex;flex:none;width:min(360px,78vw);will-change:transform,opacity}
 .lcbar i{display:block;height:100%;background:linear-gradient(90deg,#3D8BFF,#35D0FF);box-shadow:0 0 10px var(--cyan);transform:scaleX(0);transform-origin:0 50%}
 /* ---------- Futuristic type, HUD details and motion ---------- */
 body{letter-spacing:.01em}
@@ -316,7 +316,7 @@ h2.h-in::after,html:not(.js) h2::after{width:min(240px,50%)}
 body::after{content:"";position:fixed;left:0;right:0;top:0;height:140px;z-index:2;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(53,208,255,.05),transparent);animation:scan 9s linear infinite}
 @keyframes scan{from{transform:translateY(-160px)}to{transform:translateY(100vh)}}
 /* HUD corner brackets on every card */
-.fx:not(li)>.rip,.rolling .skills li>.rip{--k:rgba(98,227,255,.75);background:
+.fx:not(li)>.rip,.autoroll .skills li>.rip{--k:rgba(98,227,255,.75);background:
  linear-gradient(var(--k),var(--k)) 9px 9px/14px 1px no-repeat,linear-gradient(var(--k),var(--k)) 9px 9px/1px 14px no-repeat,
  linear-gradient(var(--k),var(--k)) right 9px top 9px/14px 1px no-repeat,linear-gradient(var(--k),var(--k)) right 9px top 9px/1px 14px no-repeat,
  linear-gradient(var(--k),var(--k)) left 9px bottom 9px/14px 1px no-repeat,linear-gradient(var(--k),var(--k)) left 9px bottom 9px/1px 14px no-repeat,
@@ -325,15 +325,14 @@ body::after{content:"";position:fixed;left:0;right:0;top:0;height:140px;z-index:
 .proj,.proj.wip,.social{background:rgba(9,20,50,.3);-webkit-backdrop-filter:none;backdrop-filter:none;border-color:rgba(120,180,255,.4)}
 .lchud{position:absolute;top:5vh;left:max(24px,calc(50% - 520px));right:max(24px,calc(50% - 520px));display:flex;justify-content:space-between;z-index:5;font:500 .72rem var(--display);letter-spacing:.22em;text-transform:uppercase;color:var(--cyan);text-shadow:0 0 12px rgba(53,208,255,.6)}
 .lchud span:first-child::before{content:"▸ "}
-#connect.rolling .slot3d{width:min(300px,76vw)}
-#connect.rolling .social{flex-direction:column;justify-content:center;text-align:center;gap:18px;padding:34px 20px;min-height:250px}
-#connect.rolling .social .sicon{width:96px;height:96px;border-radius:26px}
-#connect.rolling .social div{align-items:center;max-width:100%}
-#connect.rolling .social b{font-size:.95rem}
-@media (max-width:820px){.rolling .lcstick{height:100svh}}
+#connect.autoroll .slot3d{width:min(300px,76vw)}
+#connect.autoroll .social{flex-direction:column;justify-content:center;text-align:center;gap:18px;padding:34px 20px;min-height:250px}
+#connect.autoroll .social .sicon{width:96px;height:96px;border-radius:26px}
+#connect.autoroll .social div{align-items:center;max-width:100%}
+#connect.autoroll .social b{font-size:.95rem}
 /* ---------- Skills as rolling glass cards ---------- */
-.rolling .skills li,.rolling .skills li:first-child{display:flex;flex-direction:column;align-items:flex-start;gap:16px;padding:28px 24px;border:1px solid rgba(120,180,255,.4);border-radius:16px;background:rgba(9,20,50,.3)}
-.rolling .skills li::before{inset:0;border-radius:inherit}
+.autoroll .skills li,.autoroll .skills li:first-child{display:flex;flex-direction:column;align-items:flex-start;gap:16px;padding:28px 24px;border:1px solid rgba(120,180,255,.4);border-radius:16px;background:rgba(9,20,50,.3)}
+.autoroll .skills li::before{inset:0;border-radius:inherit}
 /* ---------- Cosmic intro: name in the core → collapse → star → quote → warp → star map ---------- */
 html.intro-lock{overflow:hidden}
 .cinematic-intro{--core:clamp(130px,32vmin,260px);height:100vh;height:100dvh}
@@ -396,6 +395,7 @@ html.intro-lock{overflow:hidden}
 .star.born{opacity:1}
 .star::before{content:"";position:absolute;width:150px;height:150px;left:-75px;top:-75px;border-radius:50%;background:radial-gradient(circle,#fff 0 5%,rgba(160,235,255,.95) 9%,rgba(70,160,255,.45) 24%,rgba(40,100,255,.14) 48%,transparent 70%)}
 .star.born::before{animation:starBirth 1.2s cubic-bezier(.2,.9,.3,1) both,starPulse 2.6s 1.2s ease-in-out infinite}
+#cosmos.menu-idle .star.born::before,#cosmos.menu-idle .star b{animation-play-state:paused}
 .star::after{content:"";position:absolute;width:10px;height:10px;left:-5px;top:-5px;border-radius:50%;background:#fff;box-shadow:0 0 14px 6px rgba(150,230,255,.9),0 0 40px 14px rgba(60,150,255,.6)}
 .star b{position:absolute;left:-120px;top:-120px;width:240px;height:240px;animation:flareSpin 16s linear infinite}
 .star b::before,.star b::after{content:"";position:absolute;background:linear-gradient(90deg,transparent,#c8f6ff,transparent);box-shadow:0 0 12px #6beaff}
@@ -417,12 +417,18 @@ html{font-size:clamp(15px,.5vw + 9px,21px)}
 .proj.wip,.proj.wip.in-view{border-style:solid;border-color:rgba(120,180,255,.4)}
 .proj.wip:hover{border-color:var(--cyan)}
 /* ---------- LeetCode auto-roll stage ---------- */
-section.autoroll{overflow-x:clip}
-.lcauto{position:relative;width:100vw;margin-left:calc(50% - 50vw);padding:70px 0 44px;overflow:hidden;touch-action:pan-y;-webkit-user-select:none;user-select:none;cursor:grab;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+section.autoroll{overflow-x:visible}
+.lcauto{position:relative;width:100vw;margin-left:calc(50% - 50vw);padding:70px 0 44px;overflow:hidden;touch-action:pan-y;-webkit-user-select:none;user-select:none;cursor:grab;-webkit-mask-image:linear-gradient(90deg,transparent,#000 15%,#000 85%,transparent);mask-image:linear-gradient(90deg,transparent,#000 15%,#000 85%,transparent)}
+.lcauto.no-hud{padding-top:30px}
 .lcauto:active{cursor:grabbing}
 .lcauto .lcgrid{display:flex;gap:30px;width:max-content;position:relative;align-items:stretch}
 .lcauto .lchud{top:22px}
+.lcauto .lchud .lcn{position:absolute;left:50%;transform:translateX(-50%)}
 .lcauto .slot3d{display:flex;flex:none;width:min(360px,78vw);will-change:transform,opacity}
+.lcauto .slot3d.sort-slot{width:min(520px,86vw)}
+.lcauto .sortwrap{display:flex;flex:0 0 100%;flex-direction:column;gap:12px;width:100%;margin:0}
+.lcauto .sortwrap>.sub{margin:0}
+.lcauto .sortwrap .viz{width:100%}
 .slot3d>*{flex:1 1 auto;width:100%;min-width:0}
 /* ---------- Neon cursor ring ---------- */
 #cursor{position:fixed;left:0;top:0;width:32px;height:32px;border-radius:50%;z-index:2000;pointer-events:none;opacity:0;border:1px solid rgba(98,227,255,.85);box-shadow:0 0 16px rgba(53,208,255,.55),inset 0 0 10px rgba(53,208,255,.25);transition:opacity .3s,scale .25s ease,background .25s}
@@ -463,15 +469,10 @@ html.ring-on,html.ring-on *{cursor:none!important}
 #space{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
 .lcauto{cursor:none}
 .lcauto a,.lcauto img{-webkit-user-drag:none;user-drag:none}
-.lcnav{position:absolute;top:50%;z-index:8;translate:0 -50%;width:48px;height:48px;border-radius:50%;border:1px solid rgba(120,200,255,.55);background:rgba(9,20,50,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#bfeaff;font:700 1.1rem var(--display);display:grid;place-items:center;transition:box-shadow .25s,border-color .25s,background .25s,scale .2s;touch-action:manipulation}
-.autoroll .lcstick{position:relative}.lcnav.prev{left:0}.lcnav.next{right:0}
 .lcauto{overflow:clip}
-.lcnav:hover,.lcnav:focus-visible{border-color:var(--cyan);background:rgba(20,70,150,.6);box-shadow:0 0 24px rgba(53,208,255,.55)}
-.lcnav:active{scale:.92}
 .lcauto:focus-visible{outline:2px solid var(--cyan);outline-offset:-4px}
 .sortwrap{margin-top:34px}
 .sorthead{font:700 1.05rem var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);margin-bottom:6px}
-@media (max-width:820px){.lcnav{width:40px;height:40px;top:auto;bottom:6px;translate:none}.lcnav.prev{left:calc(50% - 50px)}.lcnav.next{right:calc(50% - 50px)}}
 </style>
 </head>
 <body>
@@ -561,20 +562,24 @@ html.ring-on,html.ring-on *{cursor:none!important}
           <div><p>Choosing structures and algorithms by their time and space cost, then proving it with code.</p>
           <div class="tags"><span>Arrays & strings</span><span>Trees & graphs</span><span>Dynamic programming</span><span>Sorting & searching</span></div></div>
         </li>
+        <li>
+          <div class="skhead"><i class="tile" style="--c1:#35D0FF;--c2:#0A4F8C;--bd:2.4s" aria-hidden="true">+</i><h3>More in progress</h3></div>
+          <div><p>I’m always learning and expanding my toolkit. More skills and technologies will be added as I grow.</p>
+          <div class="tags"><span>Learning</span><span>Coming soon</span></div></div>
+        </li>
       </ul>
     </section>
 
 
     <section id="leetcode">
       <h2>Problems I solved</h2>
-      <p class="sub">Every LeetCode problem I’ve solved, animated step by step. They roll on their own, or take control: drag, scroll sideways, use the arrows or your arrow keys. The amber cell marks the answer.</p>
-      <div class="lcpin" id="lcpin"><div class="lcstick"><div class="lcgrid" id="lcgrid"></div><div class="lcbar" aria-hidden="true"><i></i></div></div></div>
-      <div class="sortwrap"><h3 class="sorthead">Sorting, live</h3><p class="sub">The algorithm behind many of those solutions: insertion sort moving each value into place. Watch the amber bar.</p>
+      <p class="sub">Every LeetCode problem I’ve solved, animated step by step. They roll on their own, and scrolling up or down moves them too. You can also drag them or use your arrow keys. The amber cell marks the answer.</p>
+      <div class="lcpin"><div class="lcstick"><div class="lcgrid" id="lcgrid"><div class="sortwrap"><h3 class="sorthead">Sorting, live</h3><p class="sub">The algorithm behind many of those solutions: insertion sort moving each value into place. Watch the amber bar.</p>
       <div class="viz" aria-label="Animated insertion sort visualization">
         <div class="viz-top"><span>insertion_sort(arr)</span><span id="ops">0 comparisons</span></div>
         <div class="bars" id="bars" aria-hidden="true"></div>
         <div class="viz-code">O(n²) worst case · O(n) on nearly sorted input</div>
-      </div></div>
+      </div></div></div><div class="lcbar" aria-hidden="true"><i></i></div></div></div>
     </section>
 
     <section class="quote-sec" id="philosophy" aria-label="Quote">
@@ -613,8 +618,14 @@ html.ring-on,html.ring-on *{cursor:none!important}
           <h3>This portfolio</h3>
           <p>A responsive site on GitHub Pages that I keep improving as I learn more HTML, CSS and JavaScript.</p>
         </div>
+        <div class="proj wip">
+          <i class="tile sm" style="--c1:#35D0FF;--c2:#0A4F8C;--bd:2.1s" aria-hidden="true">WEB</i>
+          <small>Coming soon</small>
+          <h3>Web builder templates</h3>
+          <p>A growing collection of ready-to-use website templates for others to explore, customize, and build on. I’ll share them here as they become available.</p>
+        </div>
       </div>
-      <p class="sub follow">Follow along on <a href="https://github.com/your-username" rel="me noopener">GitHub</a> to see new work as it lands.</p>
+      <p class="sub follow">Follow along on <a href="https://github.com/a-r-y-a-n-design" rel="me noopener">GitHub</a> to see new work as it lands.</p>
     </section>
 
     <section id="connect">

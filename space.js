@@ -9,9 +9,9 @@
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let W = 0, H = 0, stars = [];
     const neb = document.createElement("canvas");
-    let shoot = null, nextShoot = 4;
+    let shoot = null, nextShoot = 4, running = false, raf = 0;
     function build() {
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
         W = window.innerWidth;
         H = window.innerHeight;
         canvas.width = W * dpr;
@@ -35,7 +35,7 @@
                 n.fillRect(0, 0, neb.width, neb.height);
             });
         }
-        const count = Math.min(240, Math.round((W * H) / 8500));
+        const count = Math.min(180, Math.round((W * H) / 11000));
         stars = [];
         for (let i = 0; i < count; i++) {
             const l = [0.2, 0.5, 1][i % 3];
@@ -45,7 +45,7 @@
     function draw(time) {
         const t = time / 1000, sy = window.scrollY;
         g.clearRect(0, 0, W, H);
-        const off = -((sy * 0.05) % (H * 0.5)) - H * 0.1;
+        const max = Math.max(1, document.documentElement.scrollHeight - H), off = -Math.min(1, sy / max) * H * 0.5; /* eases down the page, always covers the screen */
         g.globalAlpha = 0.9;
         g.drawImage(neb, Math.sin(t * 0.03) * W * 0.03 - W * 0.03, off, W * 1.06, H * 1.5);
         g.globalAlpha = 1;
@@ -85,15 +85,41 @@
             }
         }
     }
-    const loop = (now) => { if (!document.hidden)
-        draw(now); window.requestAnimationFrame(loop); };
+    const loop = (now) => {
+        if (!running || document.hidden) {
+            running = false;
+            raf = 0;
+            return;
+        }
+        draw(now);
+        raf = window.requestAnimationFrame(loop);
+    };
+    const start = () => {
+        if (document.hidden || document.getElementById("cinematic-intro"))
+            return;
+        if (reduce) {
+            draw(0);
+            return;
+        }
+        if (!running) {
+            running = true;
+            raf = window.requestAnimationFrame(loop);
+        }
+    };
+    const stop = () => {
+        running = false;
+        if (raf)
+            window.cancelAnimationFrame(raf);
+        raf = 0;
+    };
     build();
     window.addEventListener("resize", () => { build(); if (reduce)
-        draw(0); });
-    if (reduce) {
-        draw(0);
-        window.addEventListener("scroll", () => draw(0), { passive: true });
-    }
-    else
-        window.requestAnimationFrame(loop);
+        start(); });
+    if (reduce)
+        window.addEventListener("scroll", start, { passive: true });
+    document.addEventListener("intro:closed", start);
+    document.addEventListener("visibilitychange", () => { if (document.hidden)
+        stop(); else
+        start(); });
+    start();
 })();

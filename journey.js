@@ -143,7 +143,7 @@
     const specs = [
         [".hero", 0, 1, "Intro", "Graph core · V = 127"],
         ["#skills", 1, 1, "Skills", "Binary tree · O(log n)"],
-        ["#leetcode", 3, 1, "Problems", "Linked nodes · O(n)"],
+        ["#leetcode", 3, 1, "Problems I solved", "Linked nodes · O(n)"],
         ["#philosophy", 0, 0.6, "Philosophy", "Graph core · connected"],
         ["#projects", 4, 1, "Projects", "3D lattice · building blocks"],
         ["#connect", 5, 1, "Connect", "Hub & spokes · network"]
@@ -254,10 +254,10 @@
     const sprites = [sprite("rgba(120,235,255,.95)", "rgba(60,170,255,.22)"), sprite("rgba(95,165,255,.95)", "rgba(40,100,255,.22)"), sprite("rgba(255,205,100,.95)", "rgba(255,150,0,.22)")];
     const px = new Float32Array(N), py = new Float32Array(N), pf = new Float32Array(N), pd = new Float32Array(N);
     const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-    let last = performance.now(), time = 0, ry = 0, spinCur = 0, swayCur = 0, gain = 1;
+    let last = performance.now(), time = 0, ry = 0, spinCur = 0, swayCur = 0, gain = 1, raf = 0, running = false;
     let pmx = 0.5, pmy = 0.5, mx = 0.5, my = 0.5;
     function resize() {
-        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        dpr = Math.min(window.devicePixelRatio || 1, 1.25);
         W = window.innerWidth;
         H = window.innerHeight;
         canvas.width = W * dpr;
@@ -268,6 +268,11 @@
         retarget();
     }
     function frame(now) {
+        if (!running || document.hidden) {
+            running = false;
+            raf = 0;
+            return;
+        }
         const dt = Math.min((now - last) / 1000, 0.05);
         last = now;
         time += dt;
@@ -335,13 +340,30 @@
         }
         c2.globalAlpha = 1;
         c2.globalCompositeOperation = "source-over";
-        window.requestAnimationFrame(frame);
+        raf = window.requestAnimationFrame(frame);
+    }
+    function start() {
+        if (running || document.hidden || document.getElementById("cinematic-intro"))
+            return;
+        running = true;
+        last = performance.now();
+        raf = window.requestAnimationFrame(frame);
+    }
+    function stop() {
+        running = false;
+        if (raf)
+            window.cancelAnimationFrame(raf);
+        raf = 0;
     }
     window.addEventListener("resize", resize);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("pointermove", (ev) => { pmx = ev.clientX / window.innerWidth; pmy = ev.clientY / window.innerHeight; });
+    document.addEventListener("intro:closed", start);
+    document.addEventListener("visibilitychange", () => { if (document.hidden)
+        stop(); else
+        start(); });
     resize();
     hud(0);
     onScroll();
-    window.requestAnimationFrame(frame);
+    start();
 })();

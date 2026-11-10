@@ -1,4 +1,0 @@
-{
-  "compilerOptions": { "target": "ES2019", "strict": true, "lib": ["ES2019", "DOM"] },
-  "files": ["main.ts", "journey.ts", "cosmos.ts", "space.ts"]
-}

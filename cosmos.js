@@ -7,8 +7,10 @@
     const ctx0 = cv ? cv.getContext("2d") : null;
     if (!cos || !cv || !star0 || !ctx0) {
         const i = document.getElementById("cinematic-intro");
-        if (i)
+        if (i) {
             i.remove();
+            document.dispatchEvent(new Event("intro:closed"));
+        }
         return;
     }
     const cosEl = cos, canvas = cv, starEl = star0, c2 = ctx0;
@@ -26,7 +28,7 @@
     };
     const ps = [];
     const respawn = (p, fresh) => { p.x = Math.random() * 2 - 1; p.y = Math.random() * 2 - 1; p.z = fresh ? 0.05 + Math.random() * 0.95 : 1; p.h = Math.random() * 50 - 25; };
-    for (let i = 0; i < (window.innerWidth < 700 ? 150 : 280); i++) {
+    for (let i = 0; i < (window.innerWidth < 700 ? 100 : 180); i++) {
         const p = { x: 0, y: 0, z: 1, h: 0 };
         respawn(p, true);
         ps.push(p);
@@ -35,7 +37,7 @@
     let imp = [], impT0 = 0;
     let W = 0, H = 0, running = false, last = 0, neb = 0;
     function size() {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
         W = window.innerWidth;
         H = window.innerHeight;
         canvas.width = W * dpr;
@@ -132,7 +134,7 @@
     const hideCos = () => { cosEl.classList.remove("on"); stop(); };
     /* ---------- The star ---------- */
     let mode = "center";
-    let ringMode = false, menuShown = false;
+    let ringMode = false, menuShown = false, menuIdleTimer = 0;
     function place() {
         let y = 0, s = 1;
         if (mode === "raised") {
@@ -220,6 +222,7 @@
             intro = null;
         }
         root.classList.remove("intro-lock");
+        document.dispatchEvent(new Event("intro:closed"));
         try {
             sessionStorage.setItem(KEY, "1");
         }
@@ -231,6 +234,11 @@
         if (busy || !resolve(sel))
             return;
         busy = true;
+        if (menuIdleTimer) {
+            window.clearTimeout(menuIdleTimer);
+            menuIdleTimer = 0;
+        }
+        cosEl.classList.remove("menu-idle");
         const fromIntro = !!(intro && intro.isConnected);
         if (reduce) {
             removeIntro();
@@ -313,6 +321,18 @@
         to("sa", 0.6, 800);
         to("speed", 0.07, 800);
         to("veil", 0, 800);
+        menuIdleTimer = window.setTimeout(() => {
+            if (!menuShown || busy)
+                return;
+            S.sa = 0;
+            S.speed = 0;
+            S.veil = 0;
+            tws = [];
+            stop();
+            if (!ringMode)
+                cosEl.classList.add("menu-idle");
+            menuIdleTimer = 0;
+        }, 1300);
         const sk = document.getElementById("intro-skip");
         if (sk)
             sk.innerHTML = "ENTER SITE <span>↗</span>";
@@ -426,10 +446,8 @@
         seen = sessionStorage.getItem(KEY) === "1";
     }
     catch (_e) { /* storage may be blocked */ }
-    if (intro && seen) {
-        intro.remove();
-        intro = null;
-    }
+    if (intro && seen)
+        removeIntro();
     if (intro) {
         startIntro(intro);
         if (menu)
