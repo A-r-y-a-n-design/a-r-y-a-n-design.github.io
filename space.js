@@ -9,7 +9,7 @@
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let W = 0, H = 0, stars = [];
     const neb = document.createElement("canvas");
-    let shoot = null, nextShoot = 4, running = false, raf = 0, lastDraw = 0;
+    let shoot = null, nextShoot = 4, running = false, raf = 0, lastDraw = 0, scrollBusyUntil = 0;
     function build() {
         const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
         W = window.innerWidth;
@@ -91,6 +91,11 @@
             raf = 0;
             return;
         }
+        if (now < scrollBusyUntil) {
+            lastDraw = now;
+            raf = window.requestAnimationFrame(loop);
+            return;
+        }
         if (now - lastDraw < 1000 / 30) {
             raf = window.requestAnimationFrame(loop);
             return;
@@ -122,6 +127,7 @@
     build();
     window.addEventListener("resize", () => { build(); if (reduce)
         start(); });
+    window.addEventListener("scroll", () => { scrollBusyUntil = performance.now() + 180; }, { passive: true });
     if (reduce)
         window.addEventListener("scroll", start, { passive: true });
     document.addEventListener("intro:closed", start);

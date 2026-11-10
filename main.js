@@ -444,10 +444,12 @@ function autoRoll(track, label, showCounter = true) {
     const cnt = showCounter ? stage.querySelector(".lcn") : null;
     const originalSlotCount = slots.length;
     const originalSlots = slots.slice();
+    const glowCenteredProjects = track.matches(".projects");
     const SPEED = 70; /* px per second */
-    let cw = 0, w = 0, L = 1, lefts = [];
+    let cw = 0, w = 0, L = 1, gap = 30, lefts = [];
     let t = 0, speed = 0, last = 0, raf = 0;
     let playing = false, hover = false, drag = false, dragX = 0, push = 0, vel = 0, idle = 0, moved = 0, scrollingUntil = 0;
+    let wheelDelta = 0, wheelConsumed = false, wheelResetTimer = 0;
     const paint = () => {
         const xmin = -w - 140;
         const fadeWidth = Math.max(w, cw * 0.15);
@@ -457,6 +459,8 @@ function autoRoll(track, label, showCounter = true) {
             x = ((((x - xmin) % L) + L) % L) + xmin; /* wrap around: cards leave on the left and return on the right */
             const d = Math.max(-1.3, Math.min(1.3, (x + w / 2 - cw / 2) / (cw / 2)));
             const a = Math.abs(d);
+            if (glowCenteredProjects)
+                c.classList.toggle("is-centered", a < 0.2);
             if (a < nd) {
                 nd = a;
                 near = i % originalSlotCount;
@@ -472,7 +476,7 @@ function autoRoll(track, label, showCounter = true) {
         cw = stage.clientWidth || window.innerWidth;
         w = slots[0].offsetWidth;
         const minLoopWidth = cw + w;
-        const gap = slots.length > 1 ? slots[1].offsetLeft - slots[0].offsetLeft - slots[0].offsetWidth : 0;
+        gap = slots.length > 1 ? slots[1].offsetLeft - slots[0].offsetLeft - slots[0].offsetWidth : 0;
         const getLoopWidth = () => slots[slots.length - 1].offsetLeft + slots[slots.length - 1].offsetWidth + gap;
         while (!showCounter && getLoopWidth() < minLoopWidth) {
             const clone = originalSlots[slots.length % originalSlotCount].cloneNode(true);
@@ -522,7 +526,7 @@ function autoRoll(track, label, showCounter = true) {
         hover = true; });
     stage.addEventListener("pointerleave", () => { hover = false; });
     const hold = () => { idle = performance.now() + 2500; };
-    window.addEventListener("scroll", () => { scrollingUntil = performance.now() + 160; }, { passive: true });
+    window.addEventListener("scroll", () => { scrollingUntil = performance.now() + 180; }, { passive: true });
     stage.addEventListener("pointerdown", (e) => {
         if (e.pointerType === "mouse" && e.button !== 0 && e.button !== 1)
             return;
@@ -558,11 +562,53 @@ function autoRoll(track, label, showCounter = true) {
     stage.addEventListener("wheel", (e) => {
         if (e.ctrlKey)
             return;
-        e.preventDefault();
         const unit = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : e.deltaMode === WheelEvent.DOM_DELTA_PAGE ? stage.clientHeight : 1;
         const dx = e.deltaX * unit;
         const dy = e.deltaY * unit;
-        push += Math.abs(dx) > Math.abs(dy) && !e.shiftKey ? dx : dy || dx;
+        const stageRect = stage.getBoundingClientRect();
+        const trackRect = track.getBoundingClientRect();
+        const centerX = stageRect.left + stageRect.width / 2;
+        const wheelZone = Math.min(stageRect.width * 0.2, 180);
+        const overCards = e.clientX >= centerX - wheelZone &&
+            e.clientX <= centerX + wheelZone &&
+            e.clientY >= trackRect.top &&
+            e.clientY <= trackRect.bottom;
+        if (!overCards)
+            return;
+        if (Math.abs(dx) > Math.abs(dy) && !e.shiftKey) {
+            e.preventDefault();
+            push += dx;
+        }
+        else if (e.shiftKey && Math.abs(dy || dx) > 0) {
+            e.preventDefault();
+            push += dy || dx;
+        }
+        else if (Math.abs(dy) > 0) {
+            if (wheelConsumed) {
+                window.clearTimeout(wheelResetTimer);
+                wheelResetTimer = window.setTimeout(() => {
+                    wheelConsumed = false;
+                    wheelDelta = 0;
+                }, 320);
+                return;
+            }
+            e.preventDefault();
+            wheelDelta += dy;
+            window.clearTimeout(wheelResetTimer);
+            wheelResetTimer = window.setTimeout(() => { wheelDelta = 0; }, 320);
+            if (Math.abs(wheelDelta) >= 45) {
+                push += Math.sign(wheelDelta) * (w + gap);
+                wheelDelta = 0;
+                wheelConsumed = true;
+                wheelResetTimer = window.setTimeout(() => {
+                    wheelConsumed = false;
+                    wheelDelta = 0;
+                }, 320);
+            }
+        }
+        else {
+            return;
+        }
         hold();
     }, { passive: false });
     stage.tabIndex = 0;
@@ -571,7 +617,9 @@ function autoRoll(track, label, showCounter = true) {
         if (e.key !== "ArrowRight" && e.key !== "ArrowLeft")
             return;
         e.preventDefault();
-        push += (e.key === "ArrowRight" ? 1 : -1) * (w + 30);
+        const direction = e.key === "ArrowRight" ? 1 : -1;
+        push += direction * (w + 30);
+        activeIndex = (activeIndex + direction + originalSlotCount) % originalSlotCount;
         hold();
     });
     window.addEventListener("resize", measure);
@@ -645,6 +693,67 @@ function initProgress() {
     };
     window.addEventListener("scroll", update, { passive: true });
     update();
+}
+function initScrollPerformance() {
+    let stopTimer = 0;
+    window.addEventListener("scroll", () => {
+        document.documentElement.classList.add("is-scrolling");
+        window.clearTimeout(stopTimer);
+        stopTimer = window.setTimeout(() => {
+            document.documentElement.classList.remove("is-scrolling");
+            stopTimer = 0;
+        }, 180);
+    }, { passive: true });
+}
+function initSectionWheel() {
+    let locked = false, settleTimer = 0, safetyTimer = 0, cooldownUntil = 0;
+    const finishScroll = () => {
+        window.clearTimeout(safetyTimer);
+        safetyTimer = 0;
+        settleTimer = 0;
+        locked = false;
+        cooldownUntil = performance.now() + 180;
+    };
+    window.addEventListener("scroll", () => {
+        if (!locked)
+            return;
+        window.clearTimeout(settleTimer);
+        settleTimer = window.setTimeout(finishScroll, 180);
+    }, { passive: true });
+    window.addEventListener("wheel", (e) => {
+        if (window.innerWidth < 821 || e.ctrlKey || e.defaultPrevented || Math.abs(e.deltaY) <= Math.abs(e.deltaX))
+            return;
+        e.preventDefault();
+        const now = performance.now();
+        if (locked || now < cooldownUntil)
+            return;
+        const stops = Array.from(document.querySelectorAll(".hero, main > section"));
+        if (stops.length < 2)
+            return;
+        const center = window.innerHeight / 2;
+        let current = 0, distance = Infinity;
+        stops.forEach((stop, i) => {
+            const rect = stop.getBoundingClientRect();
+            const d = Math.abs(rect.top + rect.height / 2 - center);
+            if (d < distance) {
+                current = i;
+                distance = d;
+            }
+        });
+        const next = Math.max(0, Math.min(stops.length - 1, current + (e.deltaY > 0 ? 1 : -1)));
+        if (next === current)
+            return;
+        const rect = stops[next].getBoundingClientRect();
+        const target = Math.max(0, Math.min(
+            document.documentElement.scrollHeight - window.innerHeight,
+            window.scrollY + rect.top + rect.height / 2 - center
+        ));
+        if (Math.abs(target - window.scrollY) < 2)
+            return;
+        locked = true;
+        safetyTimer = window.setTimeout(finishScroll, 1500);
+        window.scrollTo({ top: target, behavior: reduceMotion ? "auto" : "smooth" });
+    }, { passive: false });
 }
 /* ---------- 3D tilt: icons turn toward the pointer ---------- */
 function initTilt() {
@@ -776,6 +885,8 @@ function initBackground() {
     start();
 }
 initProgress();
+initScrollPerformance();
+initSectionWheel();
 initTilt();
 initBackground();
 /* ---------- Hover and tap feedback: ripple, icon pop, light sweep ---------- */

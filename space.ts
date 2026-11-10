@@ -9,7 +9,7 @@
   let W = 0, H = 0, stars: St[] = [];
   const neb = document.createElement("canvas");
   let shoot: { x: number; y: number; vx: number; vy: number; t: number } | null = null, nextShoot = 4;
-  let running = false, raf = 0, lastDraw = 0;
+  let running = false, raf = 0, lastDraw = 0, scrollBusyUntil = 0;
 
   function build(): void {
     const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
@@ -72,6 +72,11 @@
 
   const loop = (now: number): void => {
     if (!running || document.hidden) { running = false; raf = 0; return; }
+    if (now < scrollBusyUntil) {
+      lastDraw = now;
+      raf = window.requestAnimationFrame(loop);
+      return;
+    }
     if (now - lastDraw < 1000 / 30) {
       raf = window.requestAnimationFrame(loop);
       return;
@@ -93,6 +98,7 @@
   };
   build();
   window.addEventListener("resize", () => { build(); if (reduce) start(); });
+  window.addEventListener("scroll", () => { scrollBusyUntil = performance.now() + 180; }, { passive: true });
   if (reduce) window.addEventListener("scroll", start, { passive: true });
   document.addEventListener("intro:closed", start);
   document.addEventListener("visibilitychange", () => { if (document.hidden) stop(); else start(); });

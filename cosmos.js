@@ -195,7 +195,11 @@
         const el = document.querySelector(sel);
         if (!el)
             return null;
-        return { y: Math.max(0, el.getBoundingClientRect().top + window.scrollY), dock: el.querySelector("h2, blockquote") || el };
+        const rect = el.getBoundingClientRect();
+        return {
+            y: Math.max(0, rect.top + window.scrollY + rect.height / 2 - window.innerHeight / 2),
+            dock: el.querySelector("h2, blockquote") || el
+        };
     }
     function replayHero() {
         if (reduce)

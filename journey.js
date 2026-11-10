@@ -271,7 +271,9 @@
             raf = 0;
             return;
         }
-        if (now < scrollBusyUntil && now - lastPaint < 1000 / 30) {
+        if (now < scrollBusyUntil) {
+            lastPaint = now;
+            last = now;
             raf = window.requestAnimationFrame(frame);
             return;
         }
