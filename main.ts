@@ -63,6 +63,492 @@ initTyping();
 initQuote();
 initReveal();
 
+/* ---------- LeetCode problems, animated step by step ---------- */
+type Mark = [string, string?];
+interface Frame { a: (number | string)[]; m: Record<number, Mark>; n: string; bar?: boolean; cols?: number; }
+interface Problem { id: number; slug: string; t: string; tag: string; cx: string; gen: () => Frame[]; }
+
+const F = (a: (number | string)[], m: Record<number, Mark>, n: string, o?: { bar?: boolean; cols?: number }): Frame =>
+  ({ a, m, n, bar: o && o.bar, cols: o && o.cols });
+
+/* Binary-search window: L / M / R tags, everything outside the window dimmed */
+function win(a: number[], lo: number, hi: number, mid: number, n: string, bar?: boolean): Frame {
+  const m: Record<number, Mark> = {};
+  for (let i = 0; i < a.length; i++) {
+    m[i] = (i < lo || i > hi) ? ["d"] : [i === mid ? "a" : "", (i === lo ? "L" : "") + (i === mid ? "M" : "") + (i === hi ? "R" : "")];
+  }
+  return F(a, m, n, { bar });
+}
+/* Final frame: one answer cell lit, the rest dimmed */
+function done(a: number[], at: number, tag: string, n: string, bar?: boolean): Frame {
+  const m: Record<number, Mark> = {};
+  for (let i = 0; i < a.length; i++) m[i] = i === at ? ["h", tag] : ["d"];
+  return F(a, m, n, { bar });
+}
+
+const PROBLEMS: Problem[] = [
+  { id: 1606, slug: "find-servers-that-handled-most-number-of-requests", t: "Find Servers That Handled Most Number of Requests",
+    tag: "Simulation · heaps", cx: "O(n log k) time · O(k) space",
+    gen: () => {
+      const k = 3, arr = [1, 2, 3, 4, 5], load = [5, 2, 3, 3, 3];
+      const free = [0, 0, 0], cnt = [0, 0, 0], f: Frame[] = [];
+      const tags = (now: number): Record<number, Mark> => {
+        const m: Record<number, Mark> = {};
+        free.forEach((t, s) => { m[s] = ["", t > now ? `until ${t}` : "free"]; });
+        return m;
+      };
+      f.push(F(cnt.slice(), tags(0), "3 servers. Request i tries server i mod 3, then the next free one.", { cols: 3 }));
+      arr.forEach((now, i) => {
+        let pick = -1;
+        for (let j = 0; j < k; j++) { const s = (i + j) % k; if (free[s] <= now) { pick = s; break; } }
+        if (pick >= 0) { free[pick] = now + load[i]; cnt[pick]++; }
+        const m = tags(now);
+        if (pick >= 0) m[pick] = ["h", `until ${free[pick]}`]; else for (let s = 0; s < k; s++) m[s] = ["x", m[s][1]];
+        const first = `Request ${i + 1} at t=${now} (takes ${load[i]}): `;
+        f.push(F(cnt.slice(), m, first + (pick < 0 ? "every server is busy, so it is dropped."
+          : pick === i % k ? `server ${pick} is free.` : `server ${i % k} is busy, so it moves on to server ${pick}.`), { cols: 3 }));
+      });
+      const top = Math.max(...cnt), m: Record<number, Mark> = {};
+      cnt.forEach((c, s) => { m[s] = c === top ? ["g", "busiest"] : ["d"]; });
+      f.push(F(cnt.slice(), m, `Busiest server: ${cnt.map((c, s) => c === top ? s : -1).filter((s) => s >= 0).join(", ")} with ${top} requests.`, { cols: 3 }));
+      return f;
+    } },
+  { id: 540, slug: "single-element-in-a-sorted-array", t: "Single Element in a Sorted Array",
+    tag: "Binary search", cx: "O(log n) time · O(1) space",
+    gen: () => {
+      const a = [1, 1, 2, 3, 3, 4, 4, 8, 8], f: Frame[] = [];
+      let lo = 0, hi = a.length - 1;
+      while (lo < hi) {
+        let mid = (lo + hi) >> 1;
+        if (mid % 2 === 1) mid--;
+        const same = a[mid] === a[mid + 1];
+        f.push(win(a, lo, hi, mid, same ? `Pair at ${mid} matches, so the single is further right.` : `Pair at ${mid} is broken, so the single is here or left.`));
+        if (same) lo = mid + 2; else hi = mid;
+      }
+      f.push(done(a, lo, "single", `The single element is ${a[lo]}.`));
+      return f;
+    } },
+  { id: 852, slug: "peak-index-in-a-mountain-array", t: "Peak Index in a Mountain Array",
+    tag: "Binary search", cx: "O(log n) time · O(1) space",
+    gen: () => {
+      const a = [0, 2, 5, 9, 12, 10, 6, 3, 1], f: Frame[] = [];
+      let lo = 0, hi = a.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1, up = a[mid] < a[mid + 1];
+        f.push(win(a, lo, hi, mid, up ? `${a[mid]} < ${a[mid + 1]}: still climbing, search right.` : `${a[mid]} > ${a[mid + 1]}: going down, the peak is here or left.`, true));
+        if (up) lo = mid + 1; else hi = mid;
+      }
+      f.push(done(a, lo, "peak", `The peak is at index ${lo} (height ${a[lo]}).`, true));
+      return f;
+    } },
+  { id: 1267, slug: "count-servers-that-communicate", t: "Count Servers That Communicate",
+    tag: "Matrix · counting", cx: "O(m·n) time · O(m+n) space",
+    gen: () => {
+      const g = [[1, 0, 0, 1], [0, 0, 0, 0], [1, 1, 0, 0], [0, 0, 1, 0]], C = 4, f: Frame[] = [];
+      const row = [0, 0, 0, 0], col = [0, 0, 0, 0], st: Record<number, Mark> = {}, cells: string[] = [];
+      g.forEach((r, i) => r.forEach((v, j) => { row[i] += v; col[j] += v; cells.push(v ? "●" : "·"); if (!v) st[i * C + j] = ["d"]; }));
+      f.push(F(cells, { ...st }, "Count the servers in every row and every column first.", { cols: C }));
+      let ok = 0;
+      g.forEach((r, i) => r.forEach((v, j) => {
+        if (!v) return;
+        const talks = row[i] > 1 || col[j] > 1, k = i * C + j;
+        st[k] = ["a"];
+        f.push(F(cells, { ...st }, `Server (${i},${j}): row has ${row[i]}, column has ${col[j]}. ${talks ? "It can talk to another." : "It is alone."}`, { cols: C }));
+        st[k] = talks ? ["g", "✓"] : ["x", "alone"];
+        if (talks) ok++;
+      }));
+      f.push(F(cells, { ...st }, `${ok} servers can communicate.`, { cols: C }));
+      return f;
+    } },
+  { id: 33, slug: "search-in-rotated-sorted-array", t: "Search in Rotated Sorted Array",
+    tag: "Binary search", cx: "O(log n) time · O(1) space",
+    gen: () => {
+      const a = [4, 5, 6, 7, 0, 1, 2], t = 0, f: Frame[] = [];
+      let lo = 0, hi = a.length - 1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (a[mid] === t) { f.push(done(a, mid, "found", `Found ${t} at index ${mid}.`)); return f; }
+        const leftSorted = a[lo] <= a[mid];
+        const inside = leftSorted ? (a[lo] <= t && t < a[mid]) : (a[mid] < t && t <= a[hi]);
+        f.push(win(a, lo, hi, mid, `Looking for ${t}: the ${leftSorted ? "left" : "right"} half is sorted and ${inside ? "contains" : "does not contain"} it.`));
+        if (leftSorted === inside) hi = mid - 1; else lo = mid + 1;
+      }
+      f.push(F(a, {}, `${t} is not in the array.`));
+      return f;
+    } },
+  { id: 238, slug: "product-of-array-except-self", t: "Product of Array Except Self",
+    tag: "Prefix · suffix", cx: "O(n) time · O(1) extra space",
+    gen: () => {
+      const a = [1, 2, 3, 4], n = a.length, out = [1, 1, 1, 1], f: Frame[] = [];
+      f.push(F(out.slice(), {}, "nums = [1, 2, 3, 4]. The output starts as all 1s."));
+      let p = 1;
+      for (let i = 0; i < n; i++) {
+        out[i] = p;
+        const m: Record<number, Mark> = {}; for (let j = 0; j < i; j++) m[j] = ["g"]; m[i] = ["a", `×${p}`];
+        f.push(F(out.slice(), m, `Left pass: out[${i}] = product of everything left of it = ${p}.`));
+        p *= a[i];
+      }
+      let s = 1;
+      for (let i = n - 1; i >= 0; i--) {
+        out[i] *= s;
+        const m: Record<number, Mark> = {}; for (let j = i + 1; j < n; j++) m[j] = ["h"]; m[i] = ["a", `×${s}`];
+        f.push(F(out.slice(), m, `Right pass: multiply out[${i}] by the product to its right = ${s}.`));
+        s *= a[i];
+      }
+      const m: Record<number, Mark> = {}; out.forEach((_, i) => { m[i] = ["h"]; });
+      f.push(F(out.slice(), m, `Answer: [${out.join(", ")}], with no division.`));
+      return f;
+    } },
+  { id: 50, slug: "powx-n", t: "Pow(x, n)",
+    tag: "Binary exponentiation", cx: "O(log n) time · O(1) space",
+    gen: () => {
+      let base = 2, e = 10, res = 1;
+      const x = base, n = e, f: Frame[] = [], tg: Mark[] = [["", "base"], ["", "n"], ["", "result"]];
+      const show = (r: string[], note: string, hot: boolean): Frame =>
+        F([base, e, res], { 0: [r[0], tg[0][1]], 1: [r[1], tg[1][1]], 2: [hot ? "h" : r[2], tg[2][1]] }, note, { cols: 3 });
+      f.push(show(["", "", ""], `Compute ${x}^${n} by halving the exponent each step.`, false));
+      while (e > 0) {
+        const odd = (e & 1) === 1, bits = e.toString(2);
+        if (odd) res *= base;
+        base *= base; e >>= 1;
+        f.push(show(["a", "a", ""], `Lowest bit of ${bits} is ${odd ? "1: multiply the result by the base" : "0: skip"}. Then square the base and halve n.`, odd));
+      }
+      f.push(show(["d", "d", "g"], `${x}^${n} = ${res}, in ${Math.floor(Math.log2(n)) + 1} steps instead of ${n}.`, false));
+      return f;
+    } },
+  { id: 121, slug: "best-time-to-buy-and-sell-stock", t: "Best Time to Buy and Sell Stock",
+    tag: "One pass", cx: "O(n) time · O(1) space",
+    gen: () => {
+      const a = [7, 1, 5, 3, 6, 4], f: Frame[] = [];
+      let min = a[0], mi = 0, best = 0, bi = 0, bj = 0;
+      f.push(F(a, { 0: ["g", "min"] }, "Walk the prices once, tracking the lowest price seen so far.", { bar: true }));
+      for (let i = 1; i < a.length; i++) {
+        if (a[i] < min) { min = a[i]; mi = i; } else if (a[i] - min > best) { best = a[i] - min; bi = mi; bj = i; }
+        const m: Record<number, Mark> = {};
+        m[i] = ["a", "today"]; m[mi] = ["g", "min"];
+        if (best > 0) { m[bi] = ["g", "buy"]; m[bj] = ["h", "sell"]; }
+        f.push(F(a, m, `Price ${a[i]}: lowest so far ${min}, best profit ${best}.`, { bar: true }));
+      }
+      f.push(F(a, { [bi]: ["g", "buy"], [bj]: ["h", "sell"] }, `Buy at ${a[bi]}, sell at ${a[bj]}: profit ${best}.`, { bar: true }));
+      return f;
+    } },
+  { id: 169, slug: "majority-element", t: "Majority Element",
+    tag: "Boyer–Moore voting", cx: "O(n) time · O(1) space",
+    gen: () => {
+      const a = [2, 2, 1, 1, 1, 2, 2], f: Frame[] = [];
+      let c = 0, n = 0;
+      f.push(F(a, {}, "Each element votes for or against the current candidate."));
+      a.forEach((v, i) => {
+        if (n === 0) c = v;
+        n += v === c ? 1 : -1;
+        f.push(F(a, { [i]: ["a", `n=${n}`] }, `Vote ${v}: candidate ${c}, count ${n}.`));
+      });
+      const m: Record<number, Mark> = {}; a.forEach((v, i) => { m[i] = v === c ? ["h"] : ["d"]; });
+      f.push(F(a, m, `${c} survives and appears more than n/2 times.`));
+      return f;
+    } },
+  { id: 53, slug: "maximum-subarray", t: "Maximum Subarray",
+    tag: "Kadane’s algorithm", cx: "O(n) time · O(1) space",
+    gen: () => {
+      const a = [-2, 1, -3, 4, -1, 2, 1, -5, 4], f: Frame[] = [];
+      let cur = 0, s = 0, best = -Infinity, bs = 0, be = 0;
+      f.push(F(a, {}, "Keep a running sum. If it goes negative, start over."));
+      a.forEach((v, i) => {
+        const restart = cur < 0;
+        cur = restart ? v : cur + v;
+        if (restart) s = i;
+        if (cur > best) { best = cur; bs = s; be = i; }
+        const m: Record<number, Mark> = {};
+        for (let j = s; j <= i; j++) m[j] = ["a"];
+        m[i] = ["a", String(cur)];
+        for (let j = bs; j <= be; j++) m[j] = ["h", j === be ? String(best) : ""];
+        f.push(F(a, m, `Sum ${cur}${restart ? " (restarted, the old sum was negative)" : ""}. Best so far ${best}.`));
+      });
+      const m: Record<number, Mark> = {};
+      a.forEach((_, j) => { m[j] = j >= bs && j <= be ? ["h"] : ["d"]; });
+      f.push(F(a, m, `Best subarray: [${a.slice(bs, be + 1).join(", ")}] with sum ${best}.`));
+      return f;
+    } },
+  { id: 136, slug: "single-number", t: "Single Number",
+    tag: "Bit manipulation", cx: "O(n) time · O(1) space",
+    gen: () => {
+      const a = [4, 1, 2, 1, 2], f: Frame[] = [];
+      let x = 0;
+      f.push(F(a, {}, "XOR everything together. Equal pairs cancel out (a ⊕ a = 0)."));
+      a.forEach((v, i) => {
+        const prev = x; x ^= v;
+        const m: Record<number, Mark> = {}; for (let j = 0; j < i; j++) m[j] = ["d"]; m[i] = ["a", `x=${x}`];
+        f.push(F(a, m, `${prev} ⊕ ${v} = ${x}`));
+      });
+      f.push(done(a, a.indexOf(x), "single", `Everything else cancelled. The single number is ${x}.`));
+      return f;
+    } },
+];
+
+function initProblems(): void {
+  const grid = document.getElementById("lcgrid");
+  if (!grid) return;
+  PROBLEMS.forEach((p) => {
+    const frames = p.gen();
+    const card = document.createElement("article");
+    card.className = "viz lc";
+    card.setAttribute("aria-label", `LeetCode ${p.id}: ${p.t}, animated walkthrough`);
+    card.innerHTML = `<div class="viz-top"><span>#${p.id}</span><span>${p.tag}</span></div><h3>${p.t}</h3>` +
+      `<div class="stage" aria-hidden="true"></div><p class="note"></p>` +
+      `<div class="viz-code"><span>${p.cx}</span><a href="https://leetcode.com/problems/${p.slug}/" target="_blank" rel="noopener">Solve ↗</a></div>`;
+    grid.appendChild(card);
+    const stage = card.querySelector<HTMLElement>(".stage") as HTMLElement;
+    const note = card.querySelector<HTMLElement>(".note") as HTMLElement;
+
+    const show = (f: Frame): void => {
+      if (stage.children.length !== f.a.length) {
+        stage.innerHTML = f.a.map(() => `<div class="c"><i class="b"></i><span class="v"></span><small></small></div>`).join("");
+      }
+      const max = Math.max(...f.a.map(Number));
+      stage.classList.toggle("barmode", !!f.bar);
+      stage.style.setProperty("--cols", String(f.cols || f.a.length));
+      f.a.forEach((v, i) => {
+        const c = stage.children[i] as HTMLElement;
+        const m: Mark = f.m[i] || [""];
+        c.className = "c " + (m[0] || "");
+        (c.children[0] as HTMLElement).style.height = f.bar ? `${8 + Math.round((56 * Number(v)) / max)}px` : "0px";
+        (c.children[1] as HTMLElement).textContent = String(v);
+        (c.children[2] as HTMLElement).textContent = m[1] || "";
+      });
+      note.textContent = f.n;
+    };
+
+    if (reduceMotion) { show(frames[frames.length - 1]); return; }
+    show(frames[0]);
+    let idx = 0, timer = 0, running = false;
+    const step = (): void => {
+      show(frames[idx]);
+      const last = idx === frames.length - 1;
+      idx = last ? 0 : idx + 1;
+      timer = window.setTimeout(step, last ? 2600 : 1150);
+    };
+    /* Only animate cards that are on screen */
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting && !running) { running = true; step(); }
+        else if (!e.isIntersecting && running) { running = false; window.clearTimeout(timer); }
+      });
+    }, { threshold: 0.2 });
+    io.observe(card);
+  });
+}
+initProblems();
+
+/* ---------- Scroll-driven 3D roll: cards travel right to left as you scroll down ---------- */
+function rollify(track: HTMLElement | null, label: string): void {
+  if (!track || !track.children.length || reduceMotion) return;
+  const sec = track.closest("section");
+  if (!sec) return;
+  sec.classList.add("rolling");
+  const pin = document.createElement("div");
+  pin.className = "lcpin";
+  const stick = document.createElement("div");
+  stick.className = "lcstick";
+  stick.innerHTML = `<div class="lchud" aria-hidden="true"><span>${label}</span><span class="lcn"></span></div><div class="lcbar" aria-hidden="true"><i></i></div>`;
+  (track.parentNode as Node).insertBefore(pin, track);
+  pin.appendChild(stick);
+  stick.insertBefore(track, stick.firstChild);
+  track.classList.add("lctrack");
+  const isList = track.tagName === "UL";
+  if (isList) track.setAttribute("role", "list");
+  const slots: HTMLElement[] = Array.from(track.children).map((c) => {
+    const s = document.createElement("div");
+    s.className = "slot3d";
+    if (isList) s.setAttribute("role", "listitem");
+    track.replaceChild(s, c);
+    s.appendChild(c);
+    return s;
+  });
+  const bar = stick.querySelector<HTMLElement>(".lcbar i") as HTMLElement;
+  const cnt = stick.querySelector<HTMLElement>(".lcn") as HTMLElement;
+  const SPEED = 1.35; /* cards travel a bit faster than the scroll, so the section stays short */
+  let cw = 0, xs = 0, xe = 0, lefts: number[] = [], widths: number[] = [];
+  let target = 0, shown = -1, raf = 0;
+
+  const paint = (p: number): void => {
+    const x = xs - p * (xs - xe);
+    track.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`;
+    let near = 0, nd = 9;
+    slots.forEach((c, i) => {
+      const d = Math.max(-1.3, Math.min(1.3, (x + lefts[i] + widths[i] / 2 - cw / 2) / (cw / 2)));
+      const a = Math.abs(d);
+      if (a < nd) { nd = a; near = i; }
+      c.style.transform = `perspective(1100px) translateZ(${(-a * 190).toFixed(0)}px) rotateY(${(d * 42).toFixed(1)}deg) scale(${(1 - a * 0.07).toFixed(3)})`;
+      c.style.opacity = (1 - Math.min(a, 1.3) * 0.28).toFixed(2);
+    });
+    bar.style.transform = `scaleX(${p.toFixed(3)})`;
+    cnt.textContent = `${String(near + 1).padStart(2, "0")} / ${String(slots.length).padStart(2, "0")}`;
+  };
+  const readScroll = (): void => {
+    const span = pin.offsetHeight - window.innerHeight;
+    target = span > 0 ? Math.min(1, Math.max(0, -pin.getBoundingClientRect().top / span)) : 0;
+  };
+  const measure = (): void => {
+    cw = window.innerWidth;
+    lefts = slots.map((c) => c.offsetLeft);
+    widths = slots.map((c) => c.offsetWidth);
+    xs = cw * 0.66;                                              /* first card starts off to the right */
+    xe = (cw + widths[widths.length - 1]) / 2 - track.offsetWidth; /* last card ends centred */
+    pin.style.height = `${window.innerHeight + (xs - xe) / SPEED}px`;
+    readScroll();
+    shown = target;
+    paint(target);
+  };
+  /* Ease toward the scroll position so the roll feels smooth */
+  const loop = (): void => {
+    shown += (target - shown) * 0.14;
+    if (Math.abs(target - shown) < 0.0004) shown = target;
+    paint(shown);
+    raf = shown === target ? 0 : window.requestAnimationFrame(loop);
+  };
+  window.addEventListener("scroll", () => { readScroll(); if (!raf) raf = window.requestAnimationFrame(loop); }, { passive: true });
+  window.addEventListener("resize", measure);
+  window.addEventListener("load", measure);
+  if (document.fonts) document.fonts.ready.then(measure);
+  measure();
+}
+rollify(document.querySelector<HTMLElement>(".skills"), "Skills");
+/* ---------- LeetCode: rolls by itself while the section is on screen (hover or drag to slow it) ---------- */
+function autoRoll(track: HTMLElement | null, label: string): void {
+  if (!track || !track.children.length || reduceMotion) return;
+  const sec = track.closest("section");
+  if (!sec) return;
+  sec.classList.add("autoroll");
+  const stage = document.createElement("div");
+  stage.className = "lcauto";
+  stage.innerHTML = `<div class="lchud" aria-hidden="true"><span>${label}</span><span class="lcn"></span></div>`;
+  (track.parentNode as Node).insertBefore(stage, track);
+  stage.appendChild(track);
+  const slots: HTMLElement[] = Array.from(track.children).map((c) => {
+    const s = document.createElement("div");
+    s.className = "slot3d";
+    track.replaceChild(s, c);
+    s.appendChild(c);
+    return s;
+  });
+  const cnt = stage.querySelector<HTMLElement>(".lcn") as HTMLElement;
+  const SPEED = 70; /* px per second */
+  let cw = 0, w = 0, L = 1, lefts: number[] = [];
+  let t = 0, enter = 0, speed = 0, last = 0, raf = 0;
+  let playing = false, hover = false, drag = false, dragX = 0, push = 0, vel = 0, idle = 0, moved = 0;
+
+  const paint = (): void => {
+    const xmin = -w - 140;
+    let near = 0, nd = 9;
+    slots.forEach((c, i) => {
+      let x = lefts[i] - t + enter;
+      x = ((((x - xmin) % L) + L) % L) + xmin; /* wrap around: cards leave on the left and return on the right */
+      const d = Math.max(-1.3, Math.min(1.3, (x + w / 2 - cw / 2) / (cw / 2)));
+      const a = Math.abs(d);
+      if (a < nd) { nd = a; near = i; }
+      c.style.transform = `translate3d(${(x - lefts[i]).toFixed(1)}px,0,0) perspective(1100px) translateZ(${(-a * 190).toFixed(0)}px) rotateY(${(d * 42).toFixed(1)}deg) scale(${(1 - a * 0.07).toFixed(3)})`;
+      c.style.opacity = (1 - Math.min(a, 1.3) * 0.28).toFixed(2);
+    });
+    cnt.textContent = `${String(near + 1).padStart(2, "0")} / ${String(slots.length).padStart(2, "0")}`;
+  };
+  const measure = (): void => {
+    cw = stage.clientWidth || window.innerWidth;
+    lefts = slots.map((c) => c.offsetLeft);
+    w = slots[0].offsetWidth;
+    L = lefts[lefts.length - 1] + w + 30;
+    paint();
+  };
+  const frame = (now: number): void => {
+    if (!playing) { raf = 0; return; }
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const goal = drag || now < idle ? 0 : hover ? SPEED * 0.35 : SPEED; /* auto-roll resumes after manual use */
+    speed += (goal - speed) * Math.min(1, dt * 4);
+    t += speed * dt;
+    const m = push * Math.min(1, dt * 7); t += m; push -= m; if (Math.abs(push) < 0.1) push = 0;
+    enter = enter < 0.5 ? 0 : enter * Math.pow(0.05, dt); /* first cards fly in from the right */
+    paint();
+    raf = window.requestAnimationFrame(frame);
+  };
+  stage.addEventListener("pointerenter", (e: PointerEvent) => { if (e.pointerType === "mouse") hover = true; });
+  stage.addEventListener("pointerleave", () => { hover = false; });
+  const hold = (): void => { idle = performance.now() + 2500; };
+  stage.addEventListener("pointerdown", (e: PointerEvent) => { if (e.pointerType === "mouse" && e.button !== 0) return; drag = true; dragX = e.clientX; vel = 0; push = 0; moved = 0; });
+  window.addEventListener("pointermove", (e: PointerEvent) => {
+    if (!drag) return;
+    const dx = dragX - e.clientX;
+    t += dx; moved += Math.abs(dx); vel = vel * 0.6 + dx * 0.4; dragX = e.clientX; hold();
+  });
+  const release = (): void => { if (!drag) return; drag = false; push += vel * 14; vel = 0; hold(); };
+  window.addEventListener("pointerup", release);
+  window.addEventListener("pointercancel", release);
+  stage.addEventListener("scroll", () => { stage.scrollLeft = 0; });
+  stage.addEventListener("dragstart", (e: Event) => e.preventDefault());
+  stage.addEventListener("click", (e: MouseEvent) => { if (moved > 6) { e.preventDefault(); e.stopPropagation(); moved = 0; } }, true);
+  stage.addEventListener("wheel", (e: WheelEvent) => {
+    if (!(Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey)) return; /* vertical wheel still scrolls the page */
+    e.preventDefault(); push += e.deltaX || e.deltaY; hold();
+  }, { passive: false });
+  stage.tabIndex = 0;
+  stage.setAttribute("aria-label", "Solved problems. Use the left and right arrow keys to browse.");
+  stage.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault(); push += (e.key === "ArrowRight" ? 1 : -1) * (w + 30); hold();
+  });
+  [-1, 1].forEach((dir) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "lcnav " + (dir < 0 ? "prev" : "next");
+    btn.setAttribute("aria-label", dir < 0 ? "Previous problems" : "Next problems");
+    btn.textContent = dir < 0 ? "‹" : "›";
+    btn.addEventListener("pointerdown", (e: PointerEvent) => e.stopPropagation());
+    btn.addEventListener("click", () => { push += dir * (w + 30); hold(); });
+    (stage.parentElement || stage).appendChild(btn);
+  });
+  window.addEventListener("resize", measure);
+  window.addEventListener("load", measure);
+  if (document.fonts) document.fonts.ready.then(measure);
+  measure();
+  enter = cw * 0.7;
+  paint();
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting && !playing) { playing = true; last = performance.now(); raf = window.requestAnimationFrame(frame); }
+      else if (!e.isIntersecting) { playing = false; if (raf) { window.cancelAnimationFrame(raf); raf = 0; } }
+    });
+  }, { threshold: 0.1 });
+  io.observe(stage);
+}
+autoRoll(document.getElementById("lcgrid"), "Solved");
+rollify(document.querySelector<HTMLElement>(".projects"), "Projects");
+rollify(document.querySelector<HTMLElement>(".socials"), "Connect");
+
+/* ---------- Headings decode themselves when they scroll into view ---------- */
+function initScramble(): void {
+  const els = document.querySelectorAll<HTMLElement>("main h2, .proj h3, .building h3");
+  const glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/{}[]#%&";
+  const decode = (el: HTMLElement): void => {
+    el.classList.add("h-in");
+    const text = el.textContent || "";
+    const t0 = performance.now(), dur = 500 + text.length * 22;
+    el.setAttribute("aria-label", text);
+    const tick = (now: number): void => {
+      const k = Math.min(1, (now - t0) / dur), keep = Math.floor(k * text.length);
+      let out = "";
+      for (let i = 0; i < text.length; i++) out += (i < keep || text[i] === " ") ? text[i] : glyphs.charAt(Math.floor(Math.random() * glyphs.length));
+      el.textContent = k < 1 ? out : text;
+      if (k < 1) window.requestAnimationFrame(tick);
+    };
+    window.requestAnimationFrame(tick);
+  };
+  if (reduceMotion || !("IntersectionObserver" in window)) { els.forEach((e) => e.classList.add("h-in")); return; }
+  const io = new IntersectionObserver((entries, obs) => {
+    entries.forEach((e) => { if (e.isIntersecting) { decode(e.target as HTMLElement); obs.unobserve(e.target); } });
+  }, { threshold: 0.6 });
+  els.forEach((e) => io.observe(e));
+}
+initScramble();
+
+
 /* ---------- Scroll progress bar ---------- */
 function initProgress(): void {
   const bar = document.getElementById("progress");
@@ -180,13 +666,26 @@ initBackground();
 
 /* ---------- Hover and tap feedback: ripple, icon pop, light sweep ---------- */
 function initPress(): void {
-  const targets = document.querySelectorAll<HTMLElement>(".social, .skills li, .proj");
+  const targets = document.querySelectorAll<HTMLElement>(".social, .skills li, .proj, .viz, .building");
   targets.forEach((el) => {
     el.classList.add("fx");
     const layer = document.createElement("span");
     layer.className = "rip";
     layer.setAttribute("aria-hidden", "true");
     el.insertBefore(layer, el.firstChild);
+
+    /* Glossy neon overlay on cards: lights up on hover and on touch */
+    if (el.isConnected) {
+      const gloss = document.createElement("span");
+      gloss.className = "gloss";
+      gloss.setAttribute("aria-hidden", "true");
+      el.appendChild(gloss);
+      el.addEventListener("pointermove", (e: PointerEvent) => {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+        el.style.setProperty("--my", `${e.clientY - r.top}px`);
+      });
+    }
 
     el.addEventListener("pointerdown", (e: PointerEvent) => {
       const r = el.getBoundingClientRect();
@@ -216,35 +715,7 @@ function initPress(): void {
 initPress();
 
 
-/* ---------- ARYAN.OS cinematic intro ---------- */
-function initCinematicIntro(): void {
-  const intro = document.getElementById("cinematic-intro");
-  const skip = document.getElementById("intro-skip");
-  const status = document.getElementById("intro-status");
-  if (!intro) return;
-  const storageKey = "aryan-os-intro-seen";
-  let alreadySeen = false;
-  try { alreadySeen = sessionStorage.getItem(storageKey) === "1"; } catch (_) { /* storage may be blocked */ }
-  const close = (): void => {
-    intro.classList.add("is-leaving");
-    window.setTimeout(() => intro.remove(), reduceMotion ? 0 : 900);
-    try { sessionStorage.setItem(storageKey, "1"); } catch (_) { /* storage may be blocked */ }
-  };
-  if (alreadySeen) { intro.remove(); return; }
-  if (status) {
-    const start = Date.now();
-    const update = (): void => {
-      const elapsed = Math.min(100, Math.round((Date.now() - start) / 26));
-      const number = status.querySelector("span");
-      if (number) number.textContent = String(elapsed).padStart(2, "0");
-      if (elapsed < 100 && intro.isConnected) window.setTimeout(update, 35);
-    };
-    update();
-  }
-  if (skip) skip.addEventListener("click", close);
-  if (reduceMotion) { window.setTimeout(close, 500); return; }
-  window.setTimeout(close, 3100);
-}
+/* The intro sequence and section travel now live in cosmos.ts */
 
 /* ---------- Scroll-triggered cinematic card entrances ---------- */
 function initCinematicReveals(): void {
@@ -284,6 +755,37 @@ function initLivingAvatar(): void {
   });
 }
 
-initCinematicIntro();
 initCinematicReveals();
 initLivingAvatar();
+
+/* ---------- Neon cursor ring (mouse devices only) ---------- */
+function initCursor(): void {
+  if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+  const ring = document.createElement("div");
+  ring.id = "cursor";
+  ring.setAttribute("aria-hidden", "true");
+  document.body.appendChild(ring);
+  document.documentElement.classList.add("ring-on"); /* hides the system cursor everywhere */
+  let x = 0, y = 0, cx = 0, cy = 0, seen = false;
+  const move = (e: MouseEvent): void => {
+    x = e.clientX; y = e.clientY;
+    if (!seen) { seen = true; cx = x; cy = y; ring.classList.add("on"); }
+  };
+  /* capture + several event types so cards, drags and native link-dragging can never strand the ring */
+  ["pointermove", "mousemove", "pointerdown", "pointerup", "drag", "dragover"].forEach((n) => window.addEventListener(n, move as EventListener, { capture: true, passive: true }));
+  document.addEventListener("dragstart", (e: Event) => e.preventDefault());
+  document.addEventListener("pointerover", (e: PointerEvent) => {
+    const t = e.target as HTMLElement | null;
+    ring.classList.toggle("hot", !!(t && t.closest && t.closest("a, button, .fx")));
+  });
+  document.documentElement.addEventListener("pointerleave", () => ring.classList.remove("on"));
+  document.documentElement.addEventListener("pointerenter", () => { if (seen) ring.classList.add("on"); });
+  const k = reduceMotion ? 1 : 0.22;
+  const loop = (): void => {
+    cx += (x - cx) * k; cy += (y - cy) * k;
+    ring.style.transform = `translate3d(${(cx - 16).toFixed(1)}px,${(cy - 16).toFixed(1)}px,0)`;
+    window.requestAnimationFrame(loop);
+  };
+  loop();
+}
+initCursor();
