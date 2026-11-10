@@ -300,6 +300,11 @@
             }, 1050);
         }, t);
     }
+    document.addEventListener("chapter:navigate", (event) => {
+        const sel = event.detail;
+        if (typeof sel === "string")
+            travel(sel);
+    });
     /* ---------- Intro sequence ---------- */
     let timers = [];
     const later = (fn, ms) => { timers.push(window.setTimeout(fn, ms)); };

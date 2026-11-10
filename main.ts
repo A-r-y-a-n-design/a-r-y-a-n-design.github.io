@@ -370,7 +370,7 @@ function autoRoll(track: HTMLElement | null, label: string, showCounter = true):
   const SPEED = 70; /* px per second */
   let cw = 0, w = 0, L = 1, lefts: number[] = [];
   let t = 0, speed = 0, last = 0, raf = 0;
-  let playing = false, hover = false, drag = false, dragX = 0, push = 0, vel = 0, idle = 0, moved = 0;
+  let playing = false, hover = false, drag = false, dragX = 0, push = 0, vel = 0, idle = 0, moved = 0, scrollingUntil = 0;
 
   const paint = (): void => {
     const xmin = -w - 140;
@@ -416,6 +416,7 @@ function autoRoll(track: HTMLElement | null, label: string, showCounter = true):
   };
   const frame = (now: number): void => {
     if (!playing) { raf = 0; return; }
+    if (now < scrollingUntil) { last = now; raf = window.requestAnimationFrame(frame); return; }
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     const goal = drag || now < idle ? 0 : hover ? SPEED * 0.35 : SPEED; /* auto-roll resumes after manual use */
@@ -428,6 +429,7 @@ function autoRoll(track: HTMLElement | null, label: string, showCounter = true):
   stage.addEventListener("pointerenter", (e: PointerEvent) => { if (e.pointerType === "mouse") hover = true; });
   stage.addEventListener("pointerleave", () => { hover = false; });
   const hold = (): void => { idle = performance.now() + 2500; };
+  window.addEventListener("scroll", () => { scrollingUntil = performance.now() + 160; }, { passive: true });
   stage.addEventListener("pointerdown", (e: PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0 && e.button !== 1) return;
     drag = true; dragX = e.clientX; vel = 0; push = 0; moved = 0;
@@ -447,7 +449,10 @@ function autoRoll(track: HTMLElement | null, label: string, showCounter = true):
   stage.addEventListener("wheel", (e: WheelEvent) => {
     if (e.ctrlKey) return;
     e.preventDefault();
-    push += Math.abs(e.deltaX) > Math.abs(e.deltaY) && !e.shiftKey ? e.deltaX : e.deltaY || e.deltaX;
+    const unit = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : e.deltaMode === WheelEvent.DOM_DELTA_PAGE ? stage.clientHeight : 1;
+    const dx = e.deltaX * unit;
+    const dy = e.deltaY * unit;
+    push += Math.abs(dx) > Math.abs(dy) && !e.shiftKey ? dx : dy || dx;
     hold();
   }, { passive: false });
   stage.tabIndex = 0;
@@ -456,13 +461,6 @@ function autoRoll(track: HTMLElement | null, label: string, showCounter = true):
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
     e.preventDefault(); push += (e.key === "ArrowRight" ? 1 : -1) * (w + 30); hold();
   });
-  /* Scrolling the page up or down while this section is on screen rolls the cards too */
-  let lastY = window.scrollY;
-  window.addEventListener("scroll", () => {
-    const dy = window.scrollY - lastY;
-    lastY = window.scrollY;
-    if (playing && !drag && Math.abs(dy) < 300) push += dy * 1.5;
-  }, { passive: true });
   window.addEventListener("resize", measure);
   window.addEventListener("load", measure);
   if (document.fonts) document.fonts.ready.then(measure);

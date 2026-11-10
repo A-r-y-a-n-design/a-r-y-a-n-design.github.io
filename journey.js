@@ -184,10 +184,7 @@
             a.innerHTML = "<span>" + c.title + "</span><i></i>";
             a.addEventListener("click", (e) => {
                 e.preventDefault();
-                if (i === 0)
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                else
-                    c.el.scrollIntoView({ behavior: "smooth", block: "start" });
+                document.dispatchEvent(new CustomEvent("chapter:navigate", { detail: "#" + c.el.id }));
             });
             rail.appendChild(a);
             dots.push(a);
@@ -253,8 +250,9 @@
     };
     const sprites = [sprite("rgba(120,235,255,.95)", "rgba(60,170,255,.22)"), sprite("rgba(95,165,255,.95)", "rgba(40,100,255,.22)"), sprite("rgba(255,205,100,.95)", "rgba(255,150,0,.22)")];
     const px = new Float32Array(N), py = new Float32Array(N), pf = new Float32Array(N), pd = new Float32Array(N);
+    const edgeBatches = Array.from({ length: 8 }, () => []);
     const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-    let last = performance.now(), time = 0, ry = 0, spinCur = 0, swayCur = 0, gain = 1, raf = 0, running = false;
+    let last = performance.now(), lastPaint = 0, scrollBusyUntil = 0, time = 0, ry = 0, spinCur = 0, swayCur = 0, gain = 1, raf = 0, running = false;
     let pmx = 0.5, pmy = 0.5, mx = 0.5, my = 0.5;
     function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, 1.25);
@@ -273,6 +271,11 @@
             raf = 0;
             return;
         }
+        if (now < scrollBusyUntil && now - lastPaint < 1000 / 30) {
+            raf = window.requestAnimationFrame(frame);
+            return;
+        }
+        lastPaint = now;
         const dt = Math.min((now - last) / 1000, 0.05);
         last = now;
         time += dt;
@@ -322,14 +325,23 @@
             if (ea[fi] < 0.02)
                 continue;
             const E = forms[fi].e, a0 = ea[fi] * al * 0.6 * forms[fi].emul;
+            edgeBatches.forEach((batch) => { batch.length = 0; });
             for (let n = 0; n < E.length; n += 2) {
                 const a = E[n], b = E[n + 1], d = (pd[a] + pd[b]) * 0.5;
-                c2.strokeStyle = "rgba(110,190,255," + (a0 * (0.25 + 0.75 * d)).toFixed(3) + ")";
-                c2.beginPath();
-                c2.moveTo(px[a], py[a]);
-                c2.lineTo(px[b], py[b]);
-                c2.stroke();
+                const batch = edgeBatches[Math.min(7, Math.floor(d * 8))];
+                batch.push(px[a], py[a], px[b], py[b]);
             }
+            edgeBatches.forEach((batch, depth) => {
+                if (!batch.length)
+                    return;
+                c2.beginPath();
+                for (let i = 0; i < batch.length; i += 4) {
+                    c2.moveTo(batch[i], batch[i + 1]);
+                    c2.lineTo(batch[i + 2], batch[i + 3]);
+                }
+                c2.strokeStyle = "rgba(110,190,255," + (a0 * (0.25 + 0.75 * ((depth + 0.5) / 8))).toFixed(3) + ")";
+                c2.stroke();
+            });
         }
         c2.globalCompositeOperation = "lighter";
         const unit = Math.min(1.5, Math.max(0.6, S / 300));
@@ -357,6 +369,7 @@
     }
     window.addEventListener("resize", resize);
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", () => { scrollBusyUntil = performance.now() + 120; }, { passive: true });
     window.addEventListener("pointermove", (ev) => { pmx = ev.clientX / window.innerWidth; pmy = ev.clientY / window.innerHeight; });
     document.addEventListener("intro:closed", start);
     document.addEventListener("visibilitychange", () => { if (document.hidden)

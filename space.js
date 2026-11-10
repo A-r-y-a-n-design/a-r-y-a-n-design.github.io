@@ -9,7 +9,7 @@
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let W = 0, H = 0, stars = [];
     const neb = document.createElement("canvas");
-    let shoot = null, nextShoot = 4, running = false, raf = 0;
+    let shoot = null, nextShoot = 4, running = false, raf = 0, lastDraw = 0;
     function build() {
         const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
         W = window.innerWidth;
@@ -42,7 +42,7 @@
             stars.push({ x: Math.random() * W, y: Math.random() * H, r: 0.4 + l * 0.9 * Math.random() + 0.2, l, tw: 0.6 + Math.random() * 1.6, ph: Math.random() * 6.28, h: Math.random() < 0.12 ? 38 : 190 + Math.random() * 40 });
         }
     }
-    function draw(time) {
+    function draw(time, dt = 1 / 60) {
         const t = time / 1000, sy = window.scrollY;
         g.clearRect(0, 0, W, H);
         const max = Math.max(1, document.documentElement.scrollHeight - H), off = -Math.min(1, sy / max) * H * 0.5; /* eases down the page, always covers the screen */
@@ -64,9 +64,9 @@
                 shoot = { x: Math.random() * W * 0.6 + (fromLeft ? 0 : W * 0.3), y: Math.random() * H * 0.4, vx: 900 * (fromLeft ? 1 : -1), vy: 420, t: 0 };
             }
             if (shoot) {
-                shoot.t += 1 / 60;
-                shoot.x += shoot.vx / 60;
-                shoot.y += shoot.vy / 60;
+                shoot.t += dt;
+                shoot.x += shoot.vx * dt;
+                shoot.y += shoot.vy * dt;
                 const a = Math.max(0, 1 - shoot.t / 0.9), tx = shoot.x - shoot.vx * 0.09, ty = shoot.y - shoot.vy * 0.09;
                 const gr = g.createLinearGradient(tx, ty, shoot.x, shoot.y);
                 gr.addColorStop(0, "rgba(140,220,255,0)");
@@ -91,7 +91,13 @@
             raf = 0;
             return;
         }
-        draw(now);
+        if (now - lastDraw < 1000 / 30) {
+            raf = window.requestAnimationFrame(loop);
+            return;
+        }
+        const dt = lastDraw ? Math.min((now - lastDraw) / 1000, 0.05) : 1 / 60;
+        lastDraw = now;
+        draw(now, dt);
         raf = window.requestAnimationFrame(loop);
     };
     const start = () => {
@@ -103,6 +109,7 @@
         }
         if (!running) {
             running = true;
+            lastDraw = 0;
             raf = window.requestAnimationFrame(loop);
         }
     };

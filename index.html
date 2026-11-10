@@ -437,6 +437,7 @@ section.autoroll{overflow-x:visible}
 
 /* ---------- Scroll journey: stops, 3D scene, chapter HUD ---------- */
 html{scroll-snap-type:y mandatory;scroll-behavior:smooth}
+@media (min-width:821px){html{scroll-snap-type:none}}
 header.nav{scroll-snap-align:start}
 section{scroll-snap-align:start;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center}
 .hero{min-height:calc(100vh - 84px);min-height:calc(100svh - 84px)}
