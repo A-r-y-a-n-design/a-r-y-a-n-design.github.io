@@ -214,3 +214,26 @@ function initPress(): void {
 }
 
 initPress();
+
+/* ---------- Portfolio welcome intro ---------- */
+function initIntro(): void {
+  const overlay = document.getElementById("intro");
+  const skip = document.getElementById("intro-skip");
+  if (!overlay) return;
+
+  const finish = (): void => {
+    overlay.classList.add("is-leaving");
+    window.setTimeout(() => overlay.remove(), 800);
+    try { window.sessionStorage.setItem("aryan-intro-seen", "1"); } catch { /* Storage may be unavailable. */ }
+  };
+
+  let alreadySeen = false;
+  try { alreadySeen = window.sessionStorage.getItem("aryan-intro-seen") === "1"; } catch { /* Continue without storage. */ }
+  if (alreadySeen) { overlay.remove(); return; }
+
+  skip?.addEventListener("click", finish);
+  if (reduceMotion) { finish(); return; }
+  window.setTimeout(finish, 2900);
+}
+
+initIntro();
