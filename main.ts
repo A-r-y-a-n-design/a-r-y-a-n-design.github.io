@@ -215,25 +215,75 @@ function initPress(): void {
 
 initPress();
 
-/* ---------- Portfolio welcome intro ---------- */
-function initIntro(): void {
-  const overlay = document.getElementById("intro");
+
+/* ---------- ARYAN.OS cinematic intro ---------- */
+function initCinematicIntro(): void {
+  const intro = document.getElementById("cinematic-intro");
   const skip = document.getElementById("intro-skip");
-  if (!overlay) return;
-
-  const finish = (): void => {
-    overlay.classList.add("is-leaving");
-    window.setTimeout(() => overlay.remove(), 800);
-    try { window.sessionStorage.setItem("aryan-intro-seen", "1"); } catch { /* Storage may be unavailable. */ }
-  };
-
+  const status = document.getElementById("intro-status");
+  if (!intro) return;
+  const storageKey = "aryan-os-intro-seen";
   let alreadySeen = false;
-  try { alreadySeen = window.sessionStorage.getItem("aryan-intro-seen") === "1"; } catch { /* Continue without storage. */ }
-  if (alreadySeen) { overlay.remove(); return; }
-
-  skip?.addEventListener("click", finish);
-  if (reduceMotion) { finish(); return; }
-  window.setTimeout(finish, 2900);
+  try { alreadySeen = sessionStorage.getItem(storageKey) === "1"; } catch (_) { /* storage may be blocked */ }
+  const close = (): void => {
+    intro.classList.add("is-leaving");
+    window.setTimeout(() => intro.remove(), reduceMotion ? 0 : 900);
+    try { sessionStorage.setItem(storageKey, "1"); } catch (_) { /* storage may be blocked */ }
+  };
+  if (alreadySeen) { intro.remove(); return; }
+  if (status) {
+    const start = Date.now();
+    const update = (): void => {
+      const elapsed = Math.min(100, Math.round((Date.now() - start) / 26));
+      const number = status.querySelector("span");
+      if (number) number.textContent = String(elapsed).padStart(2, "0");
+      if (elapsed < 100 && intro.isConnected) window.setTimeout(update, 35);
+    };
+    update();
+  }
+  if (skip) skip.addEventListener("click", close);
+  if (reduceMotion) { window.setTimeout(close, 500); return; }
+  window.setTimeout(close, 3100);
 }
 
-initIntro();
+/* ---------- Scroll-triggered cinematic card entrances ---------- */
+function initCinematicReveals(): void {
+  const cards = document.querySelectorAll<HTMLElement>(".proj, .social, .building, .viz");
+  if (!("IntersectionObserver" in window)) { cards.forEach((card) => card.classList.add("in-view")); return; }
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target as HTMLElement;
+      el.classList.add("in-view");
+      obs.unobserve(el);
+    });
+  }, { threshold: 0.14, rootMargin: "0px 0px -45px 0px" });
+  cards.forEach((card, index) => {
+    card.style.setProperty("--reveal-delay", `${(index % 3) * 110}ms`);
+    observer.observe(card);
+  });
+}
+
+/* ---------- Avatar reacts gently to the visitor ---------- */
+function initLivingAvatar(): void {
+  const avatar = document.querySelector<HTMLElement>(".avatar");
+  if (!avatar || reduceMotion) return;
+  avatar.addEventListener("pointermove", (event: PointerEvent) => {
+    if (event.pointerType === "touch") return;
+    const rect = avatar.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width - 0.5;
+    const py = (event.clientY - rect.top) / rect.height - 0.5;
+    avatar.style.setProperty("--avatar-ry", `${(px * 7).toFixed(2)}deg`);
+    avatar.style.setProperty("--avatar-rx", `${(-py * 7).toFixed(2)}deg`);
+    avatar.style.setProperty("--avatar-x", `${(px * 5).toFixed(1)}px`);
+    avatar.style.setProperty("--avatar-y", `${(py * 5).toFixed(1)}px`);
+  });
+  avatar.addEventListener("pointerleave", () => {
+    avatar.style.setProperty("--avatar-rx", "0deg"); avatar.style.setProperty("--avatar-ry", "0deg");
+    avatar.style.setProperty("--avatar-x", "0px"); avatar.style.setProperty("--avatar-y", "0px");
+  });
+}
+
+initCinematicIntro();
+initCinematicReveals();
+initLivingAvatar();
