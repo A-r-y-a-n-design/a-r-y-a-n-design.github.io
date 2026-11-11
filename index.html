@@ -202,6 +202,7 @@ html.is-scrolling .viz,html.is-scrolling .proj,html.is-scrolling .social,html.is
 footer{border-top:1px solid var(--line);padding:30px 0 40px;color:var(--muted);font-size:.92rem}
 
 @media (max-width:820px){
+  html{scroll-snap-type:y mandatory}
   .hero{grid-template-columns:1fr;padding-top:24px}
   .skills li{grid-template-columns:1fr;gap:6px}
   .projects{grid-template-columns:1fr}
@@ -439,7 +440,7 @@ section.autoroll{overflow-x:visible}
 #cursor.hot{scale:1.7;background:rgba(53,208,255,.12)}
 
 /* ---------- Scroll journey: stops, 3D scene, chapter HUD ---------- */
-html{scroll-snap-type:y mandatory;scroll-behavior:smooth}
+html{scroll-behavior:smooth}
 section,.hero{scroll-snap-align:center;scroll-snap-stop:always}
 footer{scroll-snap-align:none}
 section{height:100vh;height:100svh;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center}

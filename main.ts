@@ -368,7 +368,7 @@ function autoRoll(track: HTMLElement | null, label: string, showCounter = true):
   const originalSlotCount = slots.length;
   const originalSlots = slots.slice();
   const glowCenteredProjects = track.matches(".projects");
-  const SPEED = 70; /* px per second */
+  const SPEED = 110; /* px per second */
   let cw = 0, w = 0, L = 1, gap = 30, lefts: number[] = [];
   let t = 0, speed = 0, last = 0, raf = 0;
   let playing = false, hover = false, drag = false, dragX = 0, push = 0, vel = 0, idle = 0, moved = 0, scrollingUntil = 0;
@@ -422,7 +422,7 @@ function autoRoll(track: HTMLElement | null, label: string, showCounter = true):
     if (now < scrollingUntil) { last = now; raf = window.requestAnimationFrame(frame); return;     }
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    const goal = drag || now < idle ? 0 : hover ? SPEED * 0.35 : SPEED; /* auto-roll resumes after manual use */
+    const goal = drag || now < idle ? 0 : hover ? SPEED * 0.6 : SPEED; /* auto-roll resumes after manual use */
     speed += (goal - speed) * Math.min(1, dt * 4);
     t += speed * dt;
     const m = push * Math.min(1, dt * 7); t += m; push -= m; if (Math.abs(push) < 0.1) push = 0;
