@@ -445,7 +445,7 @@ function autoRoll(track, label, showCounter = true) {
     const originalSlotCount = slots.length;
     const originalSlots = slots.slice();
     const glowCenteredProjects = track.matches(".projects");
-    const SPEED = 110; /* px per second */
+    const SPEED = 150; /* px per second */
     let cw = 0, w = 0, L = 1, gap = 30, lefts = [];
     let t = 0, speed = 0, last = 0, raf = 0;
     let playing = false, hover = false, drag = false, dragX = 0, push = 0, vel = 0, idle = 0, moved = 0, scrollingUntil = 0;
@@ -465,7 +465,7 @@ function autoRoll(track, label, showCounter = true) {
                 nd = a;
                 near = i % originalSlotCount;
             }
-            c.style.transform = `translate3d(${(x - lefts[i]).toFixed(1)}px,0,0) perspective(1100px) translateZ(${(-a * 190).toFixed(0)}px) rotateY(${(d * 42).toFixed(1)}deg) scale(${(1 - a * 0.07).toFixed(3)})`;
+            c.style.transform = `translate3d(${(x - lefts[i]).toFixed(1)}px,0,0) perspective(1100px) translateZ(${(-a * 160).toFixed(0)}px) rotateY(${(d * 36).toFixed(1)}deg) scale(${(1 - a * 0.055).toFixed(3)})`;
             const edgeFade = Math.max(0, Math.min(1, (x + w) / fadeWidth, (cw - x) / fadeWidth));
             c.style.opacity = ((1 - Math.min(a, 1.3) * 0.28) * edgeFade).toFixed(2);
         });
@@ -511,7 +511,7 @@ function autoRoll(track, label, showCounter = true) {
         }
         const dt = Math.min(0.05, (now - last) / 1000);
         last = now;
-        const goal = drag || now < idle ? 0 : hover ? SPEED * 0.6 : SPEED; /* auto-roll resumes after manual use */
+        const goal = drag || now < idle ? 0 : hover ? SPEED * 0.7 : SPEED; /* auto-roll resumes after manual use */
         speed += (goal - speed) * Math.min(1, dt * 4);
         t += speed * dt;
         const m = push * Math.min(1, dt * 7);
@@ -618,7 +618,7 @@ function autoRoll(track, label, showCounter = true) {
             return;
         e.preventDefault();
         const direction = e.key === "ArrowRight" ? 1 : -1;
-        push += direction * (w + 30);
+        push += direction * (w + gap);
         activeIndex = (activeIndex + direction + originalSlotCount) % originalSlotCount;
         hold();
     });
