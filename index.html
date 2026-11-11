@@ -62,6 +62,12 @@ h2{font:700 clamp(1.8rem,3.5vw,2.5rem) var(--display);letter-spacing:-.025em;mar
 
 .projects{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 .proj{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:10px;text-decoration:none}
+.credential-card{align-self:center;width:min(940px,100%);display:grid;grid-template-columns:minmax(0,1.5fr) minmax(180px,1fr);align-items:center;gap:22px;padding:16px}
+.credential-card img{display:block;width:100%;max-height:min(52svh,460px);object-fit:contain;border-radius:8px;background:rgba(0,0,0,.2)}
+.credential-caption{display:grid;gap:8px}
+.credential-caption strong{font:700 clamp(1rem,2vw,1.35rem) var(--display);color:var(--ink)}
+.credential-caption small{font:italic .85rem/1.5 var(--body);color:var(--muted)}
+.credential-open{margin-top:8px;font:600 .72rem var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--cyan)}
 .proj:hover{border-color:var(--accent)}
 .proj h3{font:700 1.2rem var(--display)}
 .proj p{color:var(--muted);font-size:.97rem;flex:1}
@@ -206,6 +212,10 @@ footer{border-top:1px solid var(--line);padding:30px 0 40px;color:var(--muted);f
   .hero{grid-template-columns:1fr;padding-top:24px}
   .skills li{grid-template-columns:1fr;gap:6px}
   .projects{grid-template-columns:1fr}
+  .credential-card{grid-template-columns:1fr;gap:12px;padding:12px}
+  .credential-card img{max-height:42svh}
+  .credential-caption{gap:5px}
+  .credential-open{margin-top:2px}
   nav a.hide-sm{display:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
@@ -533,7 +543,8 @@ html.ring-on,html.ring-on *{cursor:none!important}
       <a class="opt" href="#skills" data-to="#skills" style="--i:1"><i>02</i><span><b>Skills</b><small>Binary tree</small></span></a>
       <a class="opt" href="#leetcode" data-to="#leetcode" style="--i:2"><i>03</i><span><b>Problems</b><small>Solved &amp; sorted</small></span></a>
       <a class="opt" href="#projects" data-to="#projects" style="--i:3"><i>04</i><span><b>Projects</b><small>3D lattice</small></span></a>
-      <a class="opt" href="#connect" data-to="#connect" style="--i:4"><i>05</i><span><b>Connect</b><small>Hub &amp; spokes</small></span></a>
+      <a class="opt" href="#credentials" data-to="#credentials" style="--i:4"><i>05</i><span><b>Credentials</b><small>Digital certificates</small></span></a>
+      <a class="opt" href="#connect" data-to="#connect" style="--i:5"><i>06</i><span><b>Connect</b><small>Hub &amp; spokes</small></span></a>
     </div>
   </nav>
   <button class="intro-skip" id="intro-skip" type="button">SKIP INTRO <span>↗</span></button><div class="intro-corner intro-corner-tl">AW / 001</div><div class="intro-corner intro-corner-br">CREATIVE SYSTEM ONLINE</div>
@@ -556,6 +567,7 @@ html.ring-on,html.ring-on *{cursor:none!important}
       <a class="hide-sm" href="#skills">Skills</a>
       <a class="hide-sm" href="#leetcode">Problems</a>
       <a class="hide-sm" href="#projects">Projects</a>
+      <a class="hide-sm" href="#credentials">Credentials</a>
       <a href="#connect">Connect</a>
     </nav>
   </header>
@@ -664,6 +676,19 @@ html.ring-on,html.ring-on *{cursor:none!important}
         </div>
       </div>
       <p class="sub follow">Follow along on <a href="https://github.com/a-r-y-a-n-design" rel="me noopener">GitHub</a> to see new work as it lands.</p>
+    </section>
+
+    <section id="credentials">
+      <h2>Digital Credentials</h2>
+      <p class="sub">Certificates and milestones from my learning journey.</p>
+      <a class="proj credential-card" href="assets/be10x-ai-tools-workshop.png" target="_blank" rel="noopener noreferrer" aria-label="View the Be10x AI Tools and Claude Workshop certificate">
+        <img src="assets/be10x-ai-tools-workshop.png" alt="Certificate of completion awarded to Aryan Jhariya for the AI Tools and Claude Workshop by Be10x, issued November 11, 2026" loading="lazy" decoding="async">
+        <span class="credential-caption">
+          <strong>AI Tools &amp; Claude Workshop</strong>
+          <small>Be10x · Certificate of completion · Issued November 11, 2026</small>
+          <span class="credential-open">View full certificate ↗</span>
+        </span>
+      </a>
     </section>
 
     <section id="connect">

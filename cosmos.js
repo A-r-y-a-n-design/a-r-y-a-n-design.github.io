@@ -188,7 +188,7 @@
         place();
     }
     /* ---------- Destinations ---------- */
-    const HUES = { "#top": 212, "#skills": 196, "#leetcode": 34, "#philosophy": 300, "#projects": 160, "#connect": 330 };
+    const HUES = { "#top": 212, "#skills": 196, "#leetcode": 34, "#philosophy": 300, "#projects": 160, "#credentials": 45, "#connect": 330 };
     function resolve(sel) {
         if (sel === "#top")
             return { y: 0, dock: document.querySelector(".hero h1") || document.body };
@@ -479,7 +479,7 @@
             leave(); });
     }
     /* Header links, hero buttons and the chapter rail all use the same star travel */
-    const RAIL = { Intro: "#top", Skills: "#skills", Problems: "#leetcode", Philosophy: "#philosophy", Projects: "#projects", Connect: "#connect" };
+    const RAIL = { Intro: "#top", Skills: "#skills", "Problems I solved": "#leetcode", Philosophy: "#philosophy", Projects: "#projects", "Digital credentials": "#credentials", Connect: "#connect" };
     if (!reduce)
         document.addEventListener("click", (e) => {
             if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)

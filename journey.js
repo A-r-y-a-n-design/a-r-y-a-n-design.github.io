@@ -146,6 +146,7 @@
         ["#leetcode", 3, 1, "Problems I solved", "Linked nodes · O(n)"],
         ["#philosophy", 0, 0.6, "Philosophy", "Graph core · connected"],
         ["#projects", 4, 1, "Projects", "3D lattice · building blocks"],
+        ["#credentials", 3, 1, "Digital credentials", "Learning path · earned milestones"],
         ["#connect", 5, 1, "Connect", "Hub & spokes · network"]
     ];
     const chapters = [];
