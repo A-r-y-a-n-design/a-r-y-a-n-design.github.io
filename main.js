@@ -648,6 +648,7 @@ function autoRoll(track, label, showCounter = true) {
 autoRoll(document.getElementById("lcgrid"), "Solved");
 autoRoll(document.querySelector(".skills"), "Skills", false);
 autoRoll(document.querySelector(".projects"), "Projects", false);
+autoRoll(document.querySelector(".credentials"), "Credentials", false);
 autoRoll(document.querySelector(".socials"), "Connect", false);
 /* ---------- Headings decode themselves when they scroll into view ---------- */
 function initScramble() {

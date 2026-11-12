@@ -515,6 +515,7 @@ function autoRoll(track: HTMLElement | null, label: string, showCounter = true):
 autoRoll(document.getElementById("lcgrid"), "Solved");
 autoRoll(document.querySelector<HTMLElement>(".skills"), "Skills", false);
 autoRoll(document.querySelector<HTMLElement>(".projects"), "Projects", false);
+autoRoll(document.querySelector<HTMLElement>(".credentials"), "Credentials", false);
 autoRoll(document.querySelector<HTMLElement>(".socials"), "Connect", false);
 
 /* ---------- Headings decode themselves when they scroll into view ---------- */
