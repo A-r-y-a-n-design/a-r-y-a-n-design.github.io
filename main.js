@@ -444,7 +444,7 @@ function autoRoll(track, label, showCounter = true) {
     const cnt = showCounter ? stage.querySelector(".lcn") : null;
     const originalSlotCount = slots.length;
     const originalSlots = slots.slice();
-    const glowCenteredProjects = track.matches(".projects");
+    const glowCenteredProjects = track.matches(".projects, .credentials");
     const SPEED = 150; /* px per second */
     let cw = 0, w = 0, L = 1, gap = 30, lefts = [];
     let t = 0, speed = 0, last = 0, raf = 0;
