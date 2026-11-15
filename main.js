@@ -347,6 +347,327 @@ const PROBLEMS = [
             f.push(done(a, a.indexOf(x), "single", `Everything else cancelled. The single number is ${x}.`));
             return f;
         } },
+    /* ---- more solved problems ---- */
+    { id: 704, slug: "binary-search", t: "Binary Search", tag: "Binary search", cx: "O(log n) time · O(1) space",
+        gen: () => {
+            const a = [-1, 0, 3, 5, 9, 12], target = 9, f = [];
+            let lo = 0, hi = a.length - 1;
+            while (lo <= hi) {
+                const mid = (lo + hi) >> 1, pre = f.length === 0 ? `Looking for ${target}. ` : "";
+                if (a[mid] === target) {
+                    f.push(win(a, lo, hi, mid, `${pre}${a[mid]} equals the target.`));
+                    f.push(done(a, mid, "found", `Target ${target} is at index ${mid}.`));
+                    return f;
+                }
+                f.push(win(a, lo, hi, mid, `${pre}${a[mid]} < ${target}? ${a[mid] < target ? "Yes, search the right half." : "No, search the left half."}`));
+                if (a[mid] < target)
+                    lo = mid + 1;
+                else
+                    hi = mid - 1;
+            }
+            return f;
+        } },
+    { id: 35, slug: "search-insert-position", t: "Search Insert Position", tag: "Binary search", cx: "O(log n) time · O(1) space",
+        gen: () => {
+            const a = [1, 3, 5, 6, 8, 10], target = 7, f = [];
+            let lo = 0, hi = a.length - 1;
+            while (lo <= hi) {
+                const mid = (lo + hi) >> 1, pre = f.length === 0 ? `Where does ${target} belong? ` : "";
+                if (a[mid] === target) {
+                    f.push(done(a, mid, "found", `${target} is already at index ${mid}.`));
+                    return f;
+                }
+                f.push(win(a, lo, hi, mid, `${pre}${a[mid]} is ${a[mid] < target ? "too small, go right." : "too big, go left."}`));
+                if (a[mid] < target)
+                    lo = mid + 1;
+                else
+                    hi = mid - 1;
+            }
+            const m = {};
+            a.forEach((_, i) => { m[i] = i === lo ? ["h", "insert"] : ["d"]; });
+            f.push(F(a, m, `The window is empty. ${target} goes at index ${lo}, just before ${a[lo]}.`));
+            return f;
+        } },
+    { id: 34, slug: "find-first-and-last-position-of-element-in-sorted-array", t: "Find First and Last Position of Element in Sorted Array", tag: "Two binary searches", cx: "O(log n) time · O(1) space",
+        gen: () => {
+            const a = [5, 7, 7, 8, 8, 8, 10], t = 8, f = [];
+            const bound = (first) => {
+                let lo = 0, hi = a.length - 1, res = -1;
+                while (lo <= hi) {
+                    const mid = (lo + hi) >> 1, hit = a[mid] === t;
+                    f.push(win(a, lo, hi, mid, hit ? `${a[mid]} matches. Keep looking ${first ? "left for an earlier" : "right for a later"} one.` : a[mid] < t ? `${a[mid]} < ${t}, go right.` : `${a[mid]} > ${t}, go left.`));
+                    if (hit) {
+                        res = mid;
+                        if (first)
+                            hi = mid - 1;
+                        else
+                            lo = mid + 1;
+                    }
+                    else if (a[mid] < t)
+                        lo = mid + 1;
+                    else
+                        hi = mid - 1;
+                }
+                return res;
+            };
+            f.push(F(a, {}, `Two binary searches for ${t}: the leftmost one, then the rightmost.`));
+            const first = bound(true);
+            f.push(done(a, first, "first", `Leftmost ${t} is at index ${first}. Now the rightmost.`));
+            const last = bound(false), m = {};
+            a.forEach((_, i) => { m[i] = i >= first && i <= last ? ["h", i === first ? "first" : i === last ? "last" : ""] : ["d"]; });
+            f.push(F(a, m, `Answer: [${first}, ${last}].`));
+            return f;
+        } },
+    { id: 69, slug: "sqrtx", t: "Sqrt(x)", tag: "Binary search on the answer", cx: "O(log x) time · O(1) space",
+        gen: () => {
+            const x = 38, a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], f = [];
+            let lo = 0, hi = a.length - 1, ans = 0;
+            f.push(F(a, {}, `Find the integer part of √${x}. Binary search the answer itself.`));
+            while (lo <= hi) {
+                const mid = (lo + hi) >> 1, v = a[mid], sq = v * v;
+                const fr = win(a, lo, hi, mid, `${v}² = ${sq} ${sq <= x ? `≤ ${x}: it fits, try bigger.` : `> ${x}: too big, go smaller.`}`);
+                if (ans > 0 && ans - 1 !== mid)
+                    fr.m[ans - 1] = ["g", "best"];
+                f.push(fr);
+                if (sq <= x) {
+                    ans = v;
+                    lo = mid + 1;
+                }
+                else
+                    hi = mid - 1;
+            }
+            f.push(done(a, ans - 1, "√", `The answer is ${ans}, since ${ans}² = ${ans * ans} ≤ ${x} < ${(ans + 1) * (ans + 1)}.`));
+            return f;
+        } },
+    { id: 278, slug: "first-bad-version", t: "First Bad Version", tag: "Binary search", cx: "O(log n) time · O(1) space",
+        gen: () => {
+            const a = [1, 2, 3, 4, 5, 6, 7, 8], bad = 5, f = [];
+            let lo = 0, hi = a.length - 1;
+            f.push(F(a, {}, "Every version from the first bad one onward is bad. Find it with as few checks as possible."));
+            while (lo < hi) {
+                const mid = (lo + hi) >> 1, isBad = a[mid] >= bad;
+                f.push(win(a, lo, hi, mid, `isBadVersion(${a[mid]}) is ${isBad}. ${isBad ? "The first bad is here or earlier." : "The first bad is later."}`));
+                if (isBad)
+                    hi = mid;
+                else
+                    lo = mid + 1;
+            }
+            f.push(done(a, lo, "first bad", `The first bad version is ${a[lo]}.`));
+            return f;
+        } },
+    { id: 162, slug: "find-peak-element", t: "Find Peak Element", tag: "Binary search", cx: "O(log n) time · O(1) space",
+        gen: () => {
+            const a = [1, 2, 1, 3, 5, 6, 4], f = [];
+            let lo = 0, hi = a.length - 1;
+            while (lo < hi) {
+                const mid = (lo + hi) >> 1, up = a[mid] < a[mid + 1];
+                f.push(win(a, lo, hi, mid, `${a[mid]} ${up ? "<" : ">"} ${a[mid + 1]}: ${up ? "still climbing, a peak lies to the right." : "going down, a peak is here or to the left."}`, true));
+                if (up)
+                    lo = mid + 1;
+                else
+                    hi = mid;
+            }
+            f.push(done(a, lo, "peak", `Index ${lo} (value ${a[lo]}) is a peak.`, true));
+            return f;
+        } },
+    { id: 976, slug: "largest-perimeter-triangle", t: "Largest Perimeter Triangle", tag: "Sort · greedy", cx: "O(n log n) time · O(1) space",
+        gen: () => {
+            const orig = [3, 10, 4, 1, 5], f = [];
+            f.push(F(orig, {}, "Pick three sides for the biggest triangle. Sort them, largest first.", { bar: true }));
+            const a = orig.slice().sort((p, q) => q - p);
+            f.push(F(a, {}, "A triple works when the longest side is shorter than the other two combined.", { bar: true }));
+            for (let i = 0; i + 2 < a.length; i++) {
+                const ok = a[i] < a[i + 1] + a[i + 2], m = {};
+                [i, i + 1, i + 2].forEach((j) => { m[j] = [ok ? "h" : "x"]; });
+                m[i] = [ok ? "h" : "x", "longest"];
+                f.push(F(a, m, `${a[i]} < ${a[i + 1]} + ${a[i + 2]} = ${a[i + 1] + a[i + 2]}? ${ok ? `Yes. Perimeter ${a[i] + a[i + 1] + a[i + 2]}.` : "No, drop the longest and slide on."}`, { bar: true }));
+                if (ok)
+                    break;
+            }
+            return f;
+        } },
+    { id: 561, slug: "array-partition", t: "Array Partition", tag: "Sort · pairing", cx: "O(n log n) time · O(1) space",
+        gen: () => {
+            const orig = [6, 2, 6, 5, 1, 2], f = [];
+            f.push(F(orig, {}, "Pair the numbers so the sum of each pair's smaller value is as big as possible."));
+            const a = orig.slice().sort((p, q) => p - q);
+            f.push(F(a, {}, "Sort first. Neighbours make the best pairs, so little value is wasted."));
+            let sum = 0;
+            for (let i = 0; i < a.length; i += 2) {
+                sum += a[i];
+                const m = {};
+                for (let j = 0; j < i; j++)
+                    m[j] = ["d"];
+                m[i] = ["g", `min ${a[i]}`];
+                m[i + 1] = ["a"];
+                f.push(F(a, m, `Pair (${a[i]}, ${a[i + 1]}): keep the smaller, ${a[i]}. Sum so far ${sum}.`));
+            }
+            const m = {};
+            a.forEach((_, j) => { m[j] = j % 2 === 0 ? ["h"] : ["d"]; });
+            f.push(F(a, m, `Maximum sum: ${sum}.`));
+            return f;
+        } },
+    { id: 31, slug: "next-permutation", t: "Next Permutation", tag: "Two pointers · in place", cx: "O(n) time · O(1) space",
+        gen: () => {
+            const a = [1, 3, 5, 4, 2], f = [];
+            f.push(F(a.slice(), {}, "Find the next larger arrangement. Scan from the right for the first drop."));
+            let i = a.length - 2;
+            while (i >= 0 && a[i] >= a[i + 1]) {
+                f.push(F(a.slice(), { [i]: ["a"], [i + 1]: ["a"] }, `${a[i]} ≥ ${a[i + 1]}: still non-increasing, move left.`));
+                i--;
+            }
+            f.push(F(a.slice(), { [i]: ["h", "pivot"] }, `${a[i]} < ${a[i + 1]}: this is the pivot.`));
+            let j = a.length - 1;
+            while (a[j] <= a[i])
+                j--;
+            f.push(F(a.slice(), { [i]: ["h", "pivot"], [j]: ["g", "swap"] }, `The smallest value on the right that beats ${a[i]} is ${a[j]}.`));
+            [a[i], a[j]] = [a[j], a[i]];
+            f.push(F(a.slice(), { [i]: ["h"], [j]: ["g"] }, `Swap them: [${a.join(", ")}].`));
+            const m = {};
+            for (let k = i + 1; k < a.length; k++)
+                m[k] = ["a"];
+            f.push(F(a.slice(), m, "The tail is still in descending order. Reverse it to make it as small as possible."));
+            for (let l = i + 1, r = a.length - 1; l < r; l++, r--)
+                [a[l], a[r]] = [a[r], a[l]];
+            const done2 = {};
+            for (let k = i; k < a.length; k++)
+                done2[k] = ["h"];
+            f.push(F(a.slice(), done2, `Next permutation: [${a.join(", ")}].`));
+            return f;
+        } },
+    { id: 88, slug: "merge-sorted-array", t: "Merge Sorted Array", tag: "Two pointers from the back", cx: "O(m + n) time · O(1) space",
+        gen: () => {
+            const a = [1, 2, 3, 0, 0, 0], b = [2, 5, 6], f = [];
+            let i = 2, j = 2, k = 5;
+            f.push(F(a.slice(), {}, "Merge nums2 = [2, 5, 6] into nums1, filling from the back so nothing is overwritten."));
+            while (j >= 0) {
+                const fromA = i >= 0 && a[i] > b[j], v = fromA ? a[i] : b[j], k0 = k;
+                a[k] = v;
+                if (fromA)
+                    i--;
+                else
+                    j--;
+                k--;
+                const m = {};
+                for (let q = k + 1; q < a.length; q++)
+                    m[q] = ["g"];
+                m[k0] = ["h", String(v)];
+                f.push(F(a.slice(), m, `Write the larger tail value: ${v} from ${fromA ? "nums1" : "nums2"} goes to index ${k0}. nums2 left: [${b.slice(0, j + 1).join(", ")}].`));
+            }
+            const m = {};
+            a.forEach((_, q) => { m[q] = ["h"]; });
+            f.push(F(a.slice(), m, `Merged: [${a.join(", ")}].`));
+            return f;
+        } },
+    { id: 75, slug: "sort-colors", t: "Sort Colors", tag: "Dutch national flag", cx: "O(n) time · O(1) space",
+        gen: () => {
+            const a = [2, 0, 2, 1, 1, 0], f = [];
+            let lo = 0, mid = 0, hi = a.length - 1;
+            const snap = (n) => {
+                const m = {};
+                for (let q = 0; q < a.length; q++) {
+                    const tg = (q === lo ? "L" : "") + (q === mid ? "M" : "") + (q === hi ? "H" : "");
+                    m[q] = q < lo || q > hi ? ["g", tg] : q === mid ? ["a", tg] : ["", tg];
+                }
+                f.push(F(a.slice(), m, n));
+            };
+            const swap = (p, q) => { const t = a[p]; a[p] = a[q]; a[q] = t; };
+            while (mid <= hi) {
+                const v = a[mid];
+                if (v === 0) {
+                    snap("0 belongs at the front: swap it with L, then move both on.");
+                    swap(lo, mid);
+                    lo++;
+                    mid++;
+                }
+                else if (v === 1) {
+                    snap("1 is already in the middle zone: move M on.");
+                    mid++;
+                }
+                else {
+                    snap("2 belongs at the back: swap it with H and shrink the back zone.");
+                    swap(mid, hi);
+                    hi--;
+                }
+            }
+            const m = {};
+            a.forEach((_, q) => { m[q] = ["h"]; });
+            f.push(F(a.slice(), m, `Sorted in a single pass: [${a.join(", ")}].`));
+            return f;
+        } },
+    { id: 3105, slug: "longest-strictly-increasing-or-strictly-decreasing-subarray", t: "Longest Strictly Increasing or Strictly Decreasing Subarray", tag: "One pass", cx: "O(n) time · O(1) space",
+        gen: () => {
+            const a = [1, 4, 3, 3, 2, 5, 6, 7], f = [];
+            let inc = 1, dec = 1, best = 1, be = 0;
+            f.push(F(a, {}, "Track the current rising run and falling run, and remember the longest.", { bar: true }));
+            for (let i = 1; i < a.length; i++) {
+                const up = a[i] > a[i - 1], down = a[i] < a[i - 1];
+                if (up) {
+                    inc++;
+                    dec = 1;
+                }
+                else if (down) {
+                    dec++;
+                    inc = 1;
+                }
+                else {
+                    inc = 1;
+                    dec = 1;
+                }
+                const cur = Math.max(inc, dec);
+                if (cur > best) {
+                    best = cur;
+                    be = i;
+                }
+                const m = {};
+                for (let j = i - cur + 1; j <= i; j++)
+                    m[j] = ["a"];
+                m[i] = ["a", `${inc >= dec ? "↑" : "↓"}${cur}`];
+                for (let j = be - best + 1; j <= be; j++)
+                    m[j] = ["h", j === be ? String(best) : ""];
+                f.push(F(a, m, `${a[i - 1]} → ${a[i]}: ${up ? "rising" : down ? "falling" : "equal, so both runs reset"}. Run ${cur}, best ${best}.`, { bar: true }));
+            }
+            const m = {};
+            a.forEach((_, j) => { m[j] = j > be - best && j <= be ? ["h"] : ["d"]; });
+            f.push(F(a, m, `Longest run: ${best}.`, { bar: true }));
+            return f;
+        } },
+    { id: 3693, slug: "climbing-stairs-ii", t: "Climbing Stairs II", tag: "Dynamic programming", cx: "O(n) time · O(n) space",
+        gen: () => {
+            const costs = [1, 2, 3, 4], n = 4, dp = [0, 0, 0, 0, 0], f = [];
+            const show = (upto) => dp.map((v, k) => (k <= upto ? v : "?"));
+            f.push(F(show(0), { 0: ["g", "start"] }, "dp[i] is the cheapest way to reach step i. A jump j → i costs costs[i] + (i − j)²."));
+            for (let i = 1; i <= n; i++) {
+                let best = Infinity, bj = 0;
+                for (let j = Math.max(0, i - 3); j < i; j++) {
+                    const c = dp[j] + costs[i - 1] + (i - j) * (i - j);
+                    if (c < best) {
+                        best = c;
+                        bj = j;
+                    }
+                }
+                dp[i] = best;
+                const m = {};
+                for (let j = Math.max(0, i - 3); j < i; j++)
+                    m[j] = ["a"];
+                m[bj] = ["g", "from"];
+                m[i] = ["h", `dp[${i}]`];
+                f.push(F(show(i), m, `Step ${i} (cost ${costs[i - 1]}): best from step ${bj}, ${dp[bj]} + ${costs[i - 1]} + ${(i - bj) * (i - bj)} = ${best}.`));
+            }
+            f.push(F(show(n), { [n]: ["h", "answer"] }, `Minimum total cost to reach step ${n}: ${dp[n]}.`));
+            return f;
+        } },
+    { id: 3789, slug: "minimum-cost-to-acquire-required-items", t: "Minimum Cost to Acquire Required Items", tag: "Greedy · math", cx: "O(1) time · O(1) space",
+        gen: () => {
+            const c1 = 5, c2 = 4, cb = 6, n1 = 3, n2 = 2, f = [];
+            f.push(F([c1, c2, cb], { 0: ["", "type 1"], 1: ["", "type 2"], 2: ["", "bundle"] }, `Need ${n1} of type 1 and ${n2} of type 2. A bundle gives one of each.`, { cols: 3 }));
+            const sep = n1 * c1 + n2 * c2;
+            f.push(F([n1 * c1, n2 * c2], { 0: ["a", `${n1} × ${c1}`], 1: ["a", `${n2} × ${c2}`] }, `Plan A, no bundles: ${n1 * c1} + ${n2 * c2} = ${sep}.`, { cols: 2 }));
+            const m = Math.min(n1, n2), r1 = (n1 - m) * Math.min(c1, cb), r2 = (n2 - m) * Math.min(c2, cb), mix = m * cb + r1 + r2;
+            f.push(F([m * cb, r1, r2], { 0: ["a", `${m} bundles`], 1: ["a", `${n1 - m} × type 1`], 2: ["a", `${n2 - m} × type 2`] }, `Plan B: ${m} bundles cover both needs, the rest is bought at the cheaper price: ${m * cb} + ${r1} + ${r2} = ${mix}.`, { cols: 3 }));
+            f.push(F([sep, mix], { 0: ["d", "plan A"], 1: ["h", "plan B"] }, `Take the cheaper plan: ${Math.min(sep, mix)}.`, { cols: 2 }));
+            return f;
+        } },
 ];
 function initProblems() {
     const grid = document.getElementById("lcgrid");
@@ -586,10 +907,7 @@ function autoRoll(track, label, showCounter = true) {
         else if (Math.abs(dy) > 0) {
             if (wheelConsumed) {
                 window.clearTimeout(wheelResetTimer);
-                wheelResetTimer = window.setTimeout(() => {
-                    wheelConsumed = false;
-                    wheelDelta = 0;
-                }, 320);
+                wheelResetTimer = window.setTimeout(() => { wheelConsumed = false; wheelDelta = 0; }, 320);
                 return;
             }
             e.preventDefault();
@@ -600,10 +918,7 @@ function autoRoll(track, label, showCounter = true) {
                 push += Math.sign(wheelDelta) * (w + gap);
                 wheelDelta = 0;
                 wheelConsumed = true;
-                wheelResetTimer = window.setTimeout(() => {
-                    wheelConsumed = false;
-                    wheelDelta = 0;
-                }, 320);
+                wheelResetTimer = window.setTimeout(() => { wheelConsumed = false; wheelDelta = 0; }, 320);
             }
         }
         else {
@@ -619,7 +934,6 @@ function autoRoll(track, label, showCounter = true) {
         e.preventDefault();
         const direction = e.key === "ArrowRight" ? 1 : -1;
         push += direction * (w + gap);
-        activeIndex = (activeIndex + direction + originalSlotCount) % originalSlotCount;
         hold();
     });
     window.addEventListener("resize", measure);
@@ -745,10 +1059,7 @@ function initSectionWheel() {
         if (next === current)
             return;
         const rect = stops[next].getBoundingClientRect();
-        const target = Math.max(0, Math.min(
-            document.documentElement.scrollHeight - window.innerHeight,
-            window.scrollY + rect.top + rect.height / 2 - center
-        ));
+        const target = Math.max(0, Math.min(document.documentElement.scrollHeight - window.innerHeight, window.scrollY + rect.top + rect.height / 2 - center));
         if (Math.abs(target - window.scrollY) < 2)
             return;
         locked = true;
@@ -880,7 +1191,8 @@ function initBackground() {
     window.addEventListener("pointerleave", () => { mouse.x = -9999; mouse.y = -9999; });
     document.addEventListener("intro:closed", start);
     document.addEventListener("visibilitychange", () => { if (document.hidden)
-        stop(); else
+        stop();
+    else
         start(); });
     resize();
     start();
